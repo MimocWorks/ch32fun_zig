@@ -48,7 +48,7 @@ zig build -Dexample=blinky flash
 - `timer_irq`
   - Periodic LED toggle using SysTick tick counter (`PD0`)
 - `oled`
-  - Renders text + a smile bitmap on SSD1306
+  - Renders rotated text/images and basic shapes on SSD1306
   - Toggle animation speed with button on `PD1`
 
 ## OLED Example Wiring
@@ -61,6 +61,15 @@ zig build -Dexample=blinky flash
 Notes:
 - I2C is configured as `1MHz` Fast mode.
 - SSD1306 I2C address is assumed to be `0x3C`.
+
+## SSD1306 Drawing Helpers
+
+- `drawStrRot`, `drawCharRot`, and `drawImageRot` support `0/90/180/270` rotation.
+- `measureText` and `measureTextRot` help with centered/right-aligned layout using the built-in 8x8 font.
+- Text can be drawn with transparent background by passing `opaque_bg=false`.
+- Basic primitives are available: `drawLine`, `drawRect`, `fillRect`, `drawCircle`, `fillCircle`, `drawRoundRect`, `fillRoundRect`, `drawHLine`, `drawVLine`.
+- `drawBitmapMasked` draws 1bpp sprites with a same-format 1bpp transparency mask.
+- The implementation still uses a single 1024-byte framebuffer and does not allocate an extra rotation buffer.
 
 ## Common Commands
 

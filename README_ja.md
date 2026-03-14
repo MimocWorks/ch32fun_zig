@@ -48,7 +48,7 @@ zig build -Dexample=blinky flash
 - `timer_irq`
   - SysTick カウンタで周期トグル（PD0）
 - `oled`
-  - SSD1306 に文字 + スマイル画像を表示
+  - SSD1306 に回転文字/画像と基本図形を表示
   - PD1 ボタンでアニメ速度切替
 
 ## OLED サンプル配線
@@ -61,6 +61,15 @@ zig build -Dexample=blinky flash
 注:
 - I2C は `1MHz` Fast mode 設定です。
 - SSD1306 I2C アドレスは `0x3C` 前提です。
+
+## SSD1306 描画ヘルパ
+
+- `drawStrRot` / `drawCharRot` / `drawImageRot` で `0/90/180/270` 回転表示ができます。
+- `measureText` / `measureTextRot` で内蔵 8x8 フォントの文字列サイズを取得でき、中央寄せや右寄せに使えます。
+- 文字は `opaque_bg=false` で背景透過描画できます。
+- 基本図形として `drawLine` / `drawRect` / `fillRect` / `drawCircle` / `fillCircle` / `drawRoundRect` / `fillRoundRect` / `drawHLine` / `drawVLine` を追加しています。
+- `drawBitmapMasked` で同形式の 1bpp マスク付きスプライト描画ができます。
+- 実装は 1024 バイトの単一フレームバッファを維持し、回転用の追加バッファは持ちません。
 
 ## よく使うコマンド
 
