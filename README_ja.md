@@ -192,6 +192,26 @@ zig build -Dexample=oled disasm
 zig build -Dexample=oled mapfile
 ```
 
+## プロジェクト雛形の生成
+
+この checkout から `chzig` ヘルパコマンドをインストールします。
+
+```sh
+sh tools/install-chzig.sh
+```
+
+その後、このパッケージに依存し、`@import("ch32fun")` から全 HAL
+モジュールを使える新規プロジェクトを作成できます。
+
+```sh
+chzig init my_firmware
+cd my_firmware
+zig build
+```
+
+デフォルトでは `$HOME/.local/bin/chzig` にインストールします。別の場所へ
+入れる場合は `sh tools/install-chzig.sh --prefix /path/to/prefix` を使います。
+
 ## 出力ファイル
 
 デフォルトの `zig build` で `zig-out/firmware/` に以下が生成されます。

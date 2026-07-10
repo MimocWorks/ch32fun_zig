@@ -200,6 +200,26 @@ zig build -Dexample=oled mapfile
 zig build benchmark
 ```
 
+## Project Scaffolding
+
+Install the `chzig` helper command from this checkout:
+
+```sh
+sh tools/install-chzig.sh
+```
+
+Then create a new project that depends on this package and has every HAL module
+available through `@import("ch32fun")`:
+
+```sh
+chzig init my_firmware
+cd my_firmware
+zig build
+```
+
+By default the installer writes `chzig` to `$HOME/.local/bin`. Use
+`sh tools/install-chzig.sh --prefix /path/to/prefix` to choose another prefix.
+
 ## Using as a Dependency
 
 The HAL is a reusable Zig package. Add it to a downstream project and build

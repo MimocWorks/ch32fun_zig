@@ -1,0 +1,299 @@
+#!/usr/bin/env sh
+set -eu
+
+EMBEDDED_CH32FUN_ZIG_HOME="@CH32FUN_ZIG_HOME@"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  chzig init [directory] [--name NAME] [--force] [--ch32fun-zig PATH]
+  chzig help
+
+Creates a CH32V003 Zig firmware project using this ch32fun_zig package.
+
+Options:
+  --name NAME          Zig package / firmware name. Defaults to directory name.
+  --force             Allow overwriting generated files.
+  --ch32fun-zig PATH  Override the ch32fun_zig dependency path.
+EOF
+}
+
+die() {
+  printf 'chzig: %s\n' "$*" >&2
+  exit 1
+}
+
+script_dir() {
+  case "$0" in
+    */*) dirname "$0" ;;
+    *) dirname "$(command -v "$0")" ;;
+  esac
+}
+
+abs_dir() {
+  if [ -d "$1" ]; then
+    (cd "$1" && pwd -P)
+  else
+    mkdir -p "$1"
+    (cd "$1" && pwd -P)
+  fi
+}
+
+default_package_home() {
+  if [ "${CH32FUN_ZIG_HOME:-}" ]; then
+    abs_dir "$CH32FUN_ZIG_HOME"
+    return
+  fi
+
+  if [ "$EMBEDDED_CH32FUN_ZIG_HOME" != "@CH32FUN_ZIG_HOME@" ]; then
+    abs_dir "$EMBEDDED_CH32FUN_ZIG_HOME"
+    return
+  fi
+
+  sd=$(script_dir)
+  candidate=$(cd "$sd/.." && pwd -P)
+  if [ -f "$candidate/build.zig.zon" ] && grep -q '.name = .ch32fun_zig' "$candidate/build.zig.zon"; then
+    printf '%s\n' "$candidate"
+    return
+  fi
+
+  die "cannot locate ch32fun_zig; set CH32FUN_ZIG_HOME or reinstall with tools/install-chzig.sh"
+}
+
+sanitize_name() {
+  name=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_]/_/g; s/__*/_/g; s/^_*//; s/_*$//')
+  case "$name" in
+    "" ) name="ch32_app" ;;
+    [0-9]* ) name="app_$name" ;;
+  esac
+  printf '%s\n' "$name"
+}
+
+relative_path() {
+  from=$1
+  to=$2
+  awk -v from="$from" -v to="$to" '
+    BEGIN {
+      nf = split(from, f, "/")
+      nt = split(to, t, "/")
+      i = 2
+      while (i <= nf && i <= nt && f[i] == t[i]) i++
+
+      rel = ""
+      for (j = i; j <= nf; j++) {
+        if (f[j] != "") rel = rel "../"
+      }
+      for (j = i; j <= nt; j++) {
+        if (t[j] != "") {
+          rel = rel t[j]
+          if (j < nt) rel = rel "/"
+        }
+      }
+      if (rel == "") rel = "."
+      print rel
+    }
+  '
+}
+
+zig_string_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+write_file() {
+  path=$1
+  force=$2
+  if [ -e "$path" ] && [ "$force" != "1" ]; then
+    die "$path already exists; pass --force to overwrite"
+  fi
+  mkdir -p "$(dirname "$path")"
+  cat > "$path"
+}
+
+cmd_init() {
+  target="."
+  name=""
+  force=0
+  package_home=""
+  saw_target=0
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --name)
+        [ "$#" -ge 2 ] || die "--name requires a value"
+        name=$2
+        shift 2
+        ;;
+      --force)
+        force=1
+        shift
+        ;;
+      --ch32fun-zig)
+        [ "$#" -ge 2 ] || die "--ch32fun-zig requires a value"
+        package_home=$(abs_dir "$2")
+        shift 2
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      -*)
+        die "unknown option: $1"
+        ;;
+      *)
+        [ "$saw_target" -eq 0 ] || die "only one directory can be passed"
+        target=$1
+        saw_target=1
+        shift
+        ;;
+    esac
+  done
+
+  target_abs=$(abs_dir "$target")
+  if [ -z "$package_home" ]; then
+    package_home=$(default_package_home)
+  fi
+  [ -f "$package_home/build.zig" ] || die "$package_home does not look like ch32fun_zig"
+  [ -f "$package_home/src/ch32fun.zig" ] || die "$package_home does not contain src/ch32fun.zig"
+
+  if [ -z "$name" ]; then
+    name=$(basename "$target_abs")
+  fi
+  name=$(sanitize_name "$name")
+  dep_path=$(relative_path "$target_abs" "$package_home")
+  dep_path_escaped=$(zig_string_escape "$dep_path")
+  write_file "$target_abs/build.zig.zon" "$force" <<EOF
+.{
+    .name = .$name,
+    .version = "0.1.0",
+    .fingerprint = 0x0000000000000000,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .ch32fun_zig = .{ .path = "$dep_path_escaped" },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "README.md",
+    },
+}
+EOF
+
+  write_file "$target_abs/build.zig" "$force" <<'EOF'
+const std = @import("std");
+const ch32 = @import("ch32fun_zig");
+
+pub fn build(b: *std.Build) void {
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Optimization mode") orelse .ReleaseSmall;
+    const dep = b.dependency("ch32fun_zig", .{});
+
+    const fw = ch32.addFirmware(b, dep, .{
+        .name = "firmware",
+        .root_source_file = b.path("src/main.zig"),
+        .optimize = optimize,
+    });
+    b.installArtifact(fw);
+
+    const bin = fw.addObjCopy(.{
+        .format = .bin,
+        .basename = "firmware.bin",
+    });
+    b.getInstallStep().dependOn(&b.addInstallFileWithDir(bin.getOutput(), .{ .custom = "firmware" }, "firmware.bin").step);
+
+    const hex = fw.addObjCopy(.{
+        .format = .hex,
+        .basename = "firmware.hex",
+    });
+    b.getInstallStep().dependOn(&b.addInstallFileWithDir(hex.getOutput(), .{ .custom = "firmware" }, "firmware.hex").step);
+}
+EOF
+
+  write_file "$target_abs/src/main.zig" "$force" <<'EOF'
+const fun = @import("ch32fun");
+
+pub export fn _start() noreturn {
+    main();
+}
+
+pub fn main() noreturn {
+    fun.system.init(.{});
+    fun.gpio.enableAllClocks();
+
+    const led = fun.gpio.pin(.D, 0);
+    led.configure(.output_pp_10mhz);
+
+    while (true) {
+        led.toggle();
+        fun.time.delayMs(500);
+    }
+}
+EOF
+
+  write_file "$target_abs/.gitignore" "$force" <<'EOF'
+.zig-cache/
+zig-out/
+EOF
+
+  write_file "$target_abs/README.md" "$force" <<EOF
+# $name
+
+CH32V003 firmware project generated by \`chzig init\`.
+
+## Commands
+
+\`\`\`sh
+zig build
+zig build -Doptimize=ReleaseSmall
+\`\`\`
+
+Firmware artifacts are written to \`zig-out/firmware/firmware.bin\` and
+\`zig-out/firmware/firmware.hex\`.
+
+The \`ch32fun\` import exposes all HAL modules from \`ch32fun_zig\`, including
+GPIO, time, I2C, SSD1306, input, flash, UART/log, PWM, tone, ADC, EXTI, SPI,
+DMA, and IR.
+EOF
+
+  refresh_fingerprint "$target_abs/build.zig.zon" "$target_abs"
+
+  printf 'created %s\n' "$target_abs"
+  printf 'dependency: %s\n' "$package_home"
+  printf 'next: cd %s && zig build\n' "$target_abs"
+}
+
+refresh_fingerprint() {
+  zon=$1
+  project_dir=$2
+
+  if ! command -v zig >/dev/null 2>&1; then
+    printf 'warning: zig not found; update build.zig.zon fingerprint after installing Zig 0.16\n' >&2
+    return
+  fi
+
+  if output=$(cd "$project_dir" && zig build 2>&1); then
+    return
+  fi
+
+  fingerprint=$(printf '%s\n' "$output" | sed -n 's/.*use this value: \(0x[0-9a-fA-F][0-9a-fA-F]*\).*/\1/p' | head -n 1)
+  if [ -z "$fingerprint" ]; then
+    printf '%s\n' "$output" >&2
+    die "could not determine Zig package fingerprint"
+  fi
+
+  tmp="$zon.tmp.$$"
+  sed "s/\\.fingerprint = 0x[0-9a-fA-F][0-9a-fA-F]*,/.fingerprint = $fingerprint,/" "$zon" > "$tmp"
+  mv "$tmp" "$zon"
+}
+
+case "${1:-help}" in
+  init)
+    shift
+    cmd_init "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    die "unknown command: $1"
+    ;;
+esac
