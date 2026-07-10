@@ -145,6 +145,8 @@ zig build -Dexample=blinky flash
   - SPI1 master full-duplex check; tie `MOSI` (`PC6`) to `MISO` (`PC7`) and the LED on `PD0` confirms the echo
 - `uart_dma`
   - Sends a message over USART1 via DMA1 ch4 while the CPU keeps blinking `PD0`
+- `ir_text`
+  - Sends and receives short UTF-8 strings over a 38kHz IR LED link (`PD0` TX, `PD1` demodulated RX)
 
 ## OLED Example Wiring
 
@@ -165,6 +167,15 @@ Notes:
 - Basic primitives are available: `drawLine`, `drawRect`, `fillRect`, `drawCircle`, `fillCircle`, `drawRoundRect`, `fillRoundRect`, `drawHLine`, `drawVLine`.
 - `drawBitmapMasked` draws 1bpp sprites with a same-format 1bpp transparency mask.
 - The implementation still uses a single 1024-byte framebuffer and does not allocate an extra rotation buffer.
+
+## IR Text Example Wiring
+
+- IR LED anode -> resistor -> `PD0`, cathode -> `GND`
+- Demodulated 38kHz IR receiver `OUT` -> `PD1`
+- Status LED -> `PD2`
+- Receiver `VCC` / `GND` -> power rails required by the receiver module
+
+`fun.ir` uses the `IRText v1` frame format: a 38kHz carrier, NEC-like pulse-distance bits, `"IR"` magic, version byte, payload length, UTF-8 payload bytes, and Dallas/Maxim CRC-8.
 
 ## Common Commands
 

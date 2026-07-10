@@ -141,6 +141,8 @@ zig build -Dexample=blinky flash
   - `packed struct(u32)` の設定を `@bitCast` + Flash `Slot(T)` で永続化
 - `comptime_lookup`
   - `comptime` で sin テーブルを `.rodata` に焼き、 PWM LED (PD2) で呼吸させる
+- `ir_text`
+  - 38kHz 赤外線LEDリンクで短い UTF-8 文字列を送受信する (TX `PD0`, 復調済みRX `PD1`)
 
 ## OLED サンプル配線
 
@@ -161,6 +163,15 @@ zig build -Dexample=blinky flash
 - 基本図形として `drawLine` / `drawRect` / `fillRect` / `drawCircle` / `fillCircle` / `drawRoundRect` / `fillRoundRect` / `drawHLine` / `drawVLine` を追加しています。
 - `drawBitmapMasked` で同形式の 1bpp マスク付きスプライト描画ができます。
 - 実装は 1024 バイトの単一フレームバッファを維持し、回転用の追加バッファは持ちません。
+
+## IR Text サンプル配線
+
+- IR LED アノード -> 抵抗 -> `PD0`、カソード -> `GND`
+- 38kHz 復調済み IR 受信モジュール `OUT` -> `PD1`
+- ステータス LED -> `PD2`
+- 受信モジュール `VCC` / `GND` -> モジュール仕様に合う電源
+
+`fun.ir` は `IRText v1` フレームを使います。38kHz キャリア、NEC風の pulse-distance bit、`"IR"` magic、version、payload length、UTF-8 payload、Dallas/Maxim CRC-8 で構成されます。
 
 ## よく使うコマンド
 

@@ -13,6 +13,32 @@ pub fn delayMs(ms: u32) void {
     while (@as(u32, regs.systick().CNT -% start) < wait_ticks) {}
 }
 
+pub fn delayUs(us: u32) void {
+    const wait_ticks = usToCycles(us);
+    const start = nowCycles();
+
+    while (@as(u32, nowCycles() -% start) < wait_ticks) {}
+}
+
+pub fn nowCycles() u32 {
+    return regs.systick().CNT;
+}
+
+pub fn elapsedUsSince(start_cycles: u32) u32 {
+    return cyclesToUs(@as(u32, nowCycles() -% start_cycles));
+}
+
+pub fn usToCycles(us: u32) u32 {
+    const ticks_per_us = system.core_clock_hz / 1_000_000;
+    return @intCast(@as(u64, us) * @as(u64, ticks_per_us));
+}
+
+pub fn cyclesToUs(cycles: u32) u32 {
+    const ticks_per_us = system.core_clock_hz / 1_000_000;
+    if (ticks_per_us == 0) return 0;
+    return cycles / ticks_per_us;
+}
+
 pub const systick = struct {
     pub fn init(tick_hz: u32) void {
         const st = regs.systick();

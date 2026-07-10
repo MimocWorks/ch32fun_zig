@@ -13,3 +13,4 @@ pub const adc = @import("hal/adc.zig");
 pub const exti = @import("hal/exti.zig");
 pub const spi = @import("hal/spi.zig");
 pub const dma = @import("hal/dma.zig");
+pub const ir = @import("hal/ir.zig");
