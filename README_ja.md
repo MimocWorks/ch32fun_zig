@@ -14,17 +14,87 @@ English version: [README.md](README.md)
 
 ## 動作環境
 
-- Zig `0.15.x`（確認済み: `0.15.2`）
-- `../ch32fun/minichlink/minichlink`
-- Linux/macOS のシェル環境（`sh`）
-- 任意: `llvm-objdump` / `llvm-nm`（なければ `riscv-none-elf-*` にフォールバック）
+- Zig `0.16.0`（確認済み: `0.16.0`）
+- `../ch32fun/minichlink/minichlink`（`flash` 実行時に必要）
+- Linux/macOS のシェル環境（`sh`, `make`）
+- 任意（`disasm` / `mapfile` / `size` を使う場合のみ）:
+  - `llvm-objdump` / `llvm-nm` / `llvm-size`、または
+  - `riscv-none-elf-objdump` / `riscv-none-elf-nm` / `riscv-none-elf-size`
+
+## 依存のインストール
+
+### macOS（Homebrew）
+
+```sh
+# Zig 0.16
+brew install zig            # Homebrew がまだ 0.16 を提供していない場合は
+                            # 後述の tarball インストールを使ってください
+
+# LLVM ツール群（任意。disasm / mapfile / size を使う場合のみ）
+brew install llvm
+# brew の llvm を PATH に通す
+echo 'export PATH="$(brew --prefix llvm)/bin:$PATH"' >> ~/.zshrc
+
+# minichlink のビルドに libusb が必要
+brew install libusb pkg-config
+```
+
+### Linux（Debian / Ubuntu）
+
+```sh
+# minichlink ビルドに必要なツールチェインと libusb
+sudo apt update
+sudo apt install -y build-essential git pkg-config libusb-1.0-0-dev
+
+# LLVM ツール群（任意。disasm / mapfile / size を使う場合のみ）
+sudo apt install -y llvm
+```
+
+### Linux（Arch）
+
+```sh
+sudo pacman -S --needed base-devel git pkgconf libusb llvm
+```
+
+### 公式 tarball から Zig 0.16 を入れる（Mac/Linux）
+
+パッケージマネージャに `0.16.0` がまだ無い場合は、
+[ziglang.org/download](https://ziglang.org/download/) から直接取得します。
+
+```sh
+# macOS (Apple Silicon)
+curl -LO https://ziglang.org/download/0.16.0/zig-macos-aarch64-0.16.0.tar.xz
+tar -xJf zig-macos-aarch64-0.16.0.tar.xz
+sudo mv zig-macos-aarch64-0.16.0 /usr/local/zig-0.16.0
+sudo ln -sf /usr/local/zig-0.16.0/zig /usr/local/bin/zig
+
+# Linux (x86_64)
+curl -LO https://ziglang.org/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz
+tar -xJf zig-linux-x86_64-0.16.0.tar.xz
+sudo mv zig-linux-x86_64-0.16.0 /usr/local/zig-0.16.0
+sudo ln -sf /usr/local/zig-0.16.0/zig /usr/local/bin/zig
+```
+
+確認:
+
+```sh
+zig version   # 0.16.0 が表示されれば OK
+```
 
 ## セットアップ
 
-1. `ch32fun` 側の `minichlink` をビルドします。
+1. このリポジトリと同じ階層に `ch32fun` を clone し、`minichlink` をビルドします。
 
 ```sh
-make -C ../ch32fun/minichlink
+# build.zig が想定するディレクトリ配置
+# .
+# ├── ch32fun/
+# └── ch32fun_zig/   <-- 今ここ
+
+cd ..
+git clone https://github.com/cnlohr/ch32fun.git
+make -C ch32fun/minichlink
+cd ch32fun_zig
 ```
 
 2. サンプルをビルドします。
@@ -50,6 +120,27 @@ zig build -Dexample=blinky flash
 - `oled`
   - SSD1306 に回転文字/画像と基本図形を表示
   - PD1 ボタンでアニメ速度切替
+- `persistent_counter`
+  - 起動回数を FLASH 末尾の予約ページ (64B) に保存
+  - 電源を入れ直してもカウンタが残り、回数ぶん PD0 の LED が点滅
+- `uart_hello`
+  - USART1 (PD5, 115200 8N1) に 1 秒おきに `[I] hello ...` を送出
+- `led_fade`
+  - TIM1_CH1 PWM で PD2 の LED を呼吸させる
+- `tone_song`
+  - パッシブブザー (PD4 = TIM2_CH1) で C ドレミファ...ドを再生
+- `adc_meter`
+  - ADC ch3 (PD2) を読み、 raw 値と mV 値を UART に送出
+- `exti_button`
+  - EXTI で PD1 立ち下がりを拾い、 ISR から PD0 をトグル。 メインは `wfi`
+- `compile_time_morse`
+  - 文字列を `comptime` でモールス符号に展開、 ランタイムは PD0 を点滅させるだけ
+- `state_machine_game`
+  - `tagged union` + 網羅 `switch` で書く SSD1306 ミニゲーム (ボタン PD1)
+- `packed_settings`
+  - `packed struct(u32)` の設定を `@bitCast` + Flash `Slot(T)` で永続化
+- `comptime_lookup`
+  - `comptime` で sin テーブルを `.rodata` に焼き、 PWM LED (PD2) で呼吸させる
 
 ## OLED サンプル配線
 
@@ -74,25 +165,34 @@ zig build -Dexample=blinky flash
 ## よく使うコマンド
 
 ```sh
-# サンプルをビルド
+# サンプルをビルド（.elf / .bin / .hex を出力）
 zig build -Dexample=oled
-
-# サイズ表示
-zig build -Dexample=oled size
 
 # 書き込み
 zig build -Dexample=oled flash
+
+# サイズ表示（llvm-size または riscv-none-elf-size が必要）
+zig build -Dexample=oled size
+
+# 逆アセンブル（llvm-objdump または riscv-none-elf-objdump が必要）
+zig build -Dexample=oled disasm
+
+# シンボルマップ（llvm-nm または riscv-none-elf-nm が必要）
+zig build -Dexample=oled mapfile
 ```
 
 ## 出力ファイル
 
-生成物は `zig-out/firmware/` に出力されます。
+デフォルトの `zig build` で `zig-out/firmware/` に以下が生成されます。
 
 - `<example>.elf`
 - `<example>.bin`
 - `<example>.hex`
-- `<example>.lst`
-- `<example>.map`
+
+任意の生成物（対応するステップを明示的に実行した場合のみ）:
+
+- `<example>.lst` — `zig build … disasm`
+- `<example>.map` — `zig build … mapfile`
 
 ## ディレクトリ構成
 

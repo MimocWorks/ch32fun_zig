@@ -1,6 +1,7 @@
 const root = @import("root");
 const regs = @import("../periph/registers.zig");
 const time = @import("../hal/time.zig");
+const exti = @import("../hal/exti.zig");
 
 extern var _sbss: u32;
 extern var _ebss: u32;
@@ -156,6 +157,79 @@ export fn _systick_irq_body() callconv(.c) void {
     time.systickInterruptBody();
 }
 
+pub export fn _exti7_0_irq_entry() callconv(.naked) void {
+    asm volatile (
+        \\addi sp, sp, -128
+        \\sw ra, 124(sp)
+        \\sw gp, 120(sp)
+        \\sw tp, 116(sp)
+        \\sw t0, 112(sp)
+        \\sw t1, 108(sp)
+        \\sw t2, 104(sp)
+        \\sw s0, 100(sp)
+        \\sw s1, 96(sp)
+        \\sw a0, 92(sp)
+        \\sw a1, 88(sp)
+        \\sw a2, 84(sp)
+        \\sw a3, 80(sp)
+        \\sw a4, 76(sp)
+        \\sw a5, 72(sp)
+        \\sw a6, 68(sp)
+        \\sw a7, 64(sp)
+        \\sw s2, 60(sp)
+        \\sw s3, 56(sp)
+        \\sw s4, 52(sp)
+        \\sw s5, 48(sp)
+        \\sw s6, 44(sp)
+        \\sw s7, 40(sp)
+        \\sw s8, 36(sp)
+        \\sw s9, 32(sp)
+        \\sw s10, 28(sp)
+        \\sw s11, 24(sp)
+        \\sw t3, 20(sp)
+        \\sw t4, 16(sp)
+        \\sw t5, 12(sp)
+        \\sw t6, 8(sp)
+        \\call _exti7_0_irq_body
+        \\lw ra, 124(sp)
+        \\lw gp, 120(sp)
+        \\lw tp, 116(sp)
+        \\lw t0, 112(sp)
+        \\lw t1, 108(sp)
+        \\lw t2, 104(sp)
+        \\lw s0, 100(sp)
+        \\lw s1, 96(sp)
+        \\lw a0, 92(sp)
+        \\lw a1, 88(sp)
+        \\lw a2, 84(sp)
+        \\lw a3, 80(sp)
+        \\lw a4, 76(sp)
+        \\lw a5, 72(sp)
+        \\lw a6, 68(sp)
+        \\lw a7, 64(sp)
+        \\lw s2, 60(sp)
+        \\lw s3, 56(sp)
+        \\lw s4, 52(sp)
+        \\lw s5, 48(sp)
+        \\lw s6, 44(sp)
+        \\lw s7, 40(sp)
+        \\lw s8, 36(sp)
+        \\lw s9, 32(sp)
+        \\lw s10, 28(sp)
+        \\lw s11, 24(sp)
+        \\lw t3, 20(sp)
+        \\lw t4, 16(sp)
+        \\lw t5, 12(sp)
+        \\lw t6, 8(sp)
+        \\addi sp, sp, 128
+        \\mret
+    );
+}
+
+export fn _exti7_0_irq_body() callconv(.c) void {
+    exti.handleInterrupt();
+}
+
 fn makeVectorTable() [39]?*const anyopaque {
     var table = [_]?*const anyopaque{null} ** 39;
     table[2] = &_default_irq_entry; // NMI
@@ -167,6 +241,9 @@ fn makeVectorTable() [39]?*const anyopaque {
     while (i < table.len) : (i += 1) {
         table[i] = &_default_irq_entry;
     }
+
+    // 個別 IRQ 番号 = table[16 + IRQn]
+    table[16 + 20] = &_exti7_0_irq_entry; // EXTI7_0_IRQn
 
     return table;
 }
