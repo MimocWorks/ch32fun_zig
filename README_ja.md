@@ -143,6 +143,8 @@ zig build -Dexample=blinky flash
   - `comptime` で sin テーブルを `.rodata` に焼き、 PWM LED (PD2) で呼吸させる
 - `ir_text`
   - 38kHz 赤外線LEDリンクで短い UTF-8 文字列を送受信する (TX `PD0`, 復調済みRX `PD1`)
+- `register_blinky`
+  - GPIO/time HAL を使わず、RCC / GPIOD / SysTick の MMIO レジスタ直接操作で `PD0` を点滅
 
 ## OLED サンプル配線
 
@@ -157,12 +159,39 @@ zig build -Dexample=blinky flash
 
 ## SSD1306 描画ヘルパ
 
+- `initPanelWithOrientation(.portrait)` / `.landscape` / `.landscape_flip` / `.portrait_flip` で初期化時に論理画面の向きを指定できます。
+- `logicalWidth()` / `logicalHeight()` で現在の論理座標サイズを取得できます（縦画面では `64x128`）。
 - `drawStrRot` / `drawCharRot` / `drawImageRot` で `0/90/180/270` 回転表示ができます。
 - `measureText` / `measureTextRot` で内蔵 8x8 フォントの文字列サイズを取得でき、中央寄せや右寄せに使えます。
 - 文字は `opaque_bg=false` で背景透過描画できます。
 - 基本図形として `drawLine` / `drawRect` / `fillRect` / `drawCircle` / `fillCircle` / `drawRoundRect` / `fillRoundRect` / `drawHLine` / `drawVLine` を追加しています。
+- 拡張ヘルパとして `drawLineThick` / `drawRectThick` / `drawCircleThick` / `drawRoundRectThick` / `drawFrame` / `drawRoundFrame` / `drawTriangle` / `fillTriangle` / `drawEllipse` / `fillEllipse` / `drawProgressBar` を追加しています。
 - `drawBitmapMasked` で同形式の 1bpp マスク付きスプライト描画ができます。
 - 実装は 1024 バイトの単一フレームバッファを維持し、回転用の追加バッファは持ちません。
+
+## ボタン入力ヘルパ
+
+`fun.input.Button` で任意の GPIO ピンに接続したボタンを扱えます。
+
+```zig
+const a = fun.input.Button.init(.{
+    .pin = fun.gpio.pin(.D, 1),
+    .pull = .up,
+    .active = .low,
+});
+const b = fun.input.button(.{
+    .pin = fun.gpio.pin(.D, 3),
+    .pull = .down,
+    .active = .high,
+});
+
+if (a.isPressed() or b.isPressed()) {
+    // ...
+}
+```
+
+既存の `initButtonPd1Pullup()` / `isButtonPressed()` は、互換性のため
+PD1 active-low のショートカットとして残しています。
 
 ## IR Text サンプル配線
 
@@ -207,10 +236,18 @@ sh tools/install-chzig.sh
 chzig init my_firmware
 cd my_firmware
 zig build
+chzig flash
+chzig minichlink -i
+chzig minichlink -3
+chzig minichlink -r dump.bin flash 16384
 ```
 
 デフォルトでは `$HOME/.local/bin/chzig` にインストールします。別の場所へ
 入れる場合は `sh tools/install-chzig.sh --prefix /path/to/prefix` を使います。
+インストーラは `../ch32fun/minichlink/minichlink` も install prefix 内へ同梱するため、
+`chzig flash` で `zig-out/firmware/firmware.bin` をビルドして書き込めます。
+高度な書き込み器操作は `chzig minichlink ...` で指定でき、引数は内包
+`minichlink` へそのまま渡されます。
 
 ## 出力ファイル
 

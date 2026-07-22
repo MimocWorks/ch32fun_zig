@@ -147,6 +147,8 @@ zig build -Dexample=blinky flash
   - Sends a message over USART1 via DMA1 ch4 while the CPU keeps blinking `PD0`
 - `ir_text`
   - Sends and receives short UTF-8 strings over a 38kHz IR LED link (`PD0` TX, `PD1` demodulated RX)
+- `register_blinky`
+  - Blinks `PD0` by directly writing RCC / GPIOD / SysTick MMIO registers, without the GPIO/time HAL helpers
 
 ## OLED Example Wiring
 
@@ -161,12 +163,39 @@ Notes:
 
 ## SSD1306 Drawing Helpers
 
+- `initPanelWithOrientation(.portrait)` / `.landscape` / `.landscape_flip` / `.portrait_flip` selects the logical screen orientation at initialization.
+- `logicalWidth()` / `logicalHeight()` return the active logical coordinate size (`64x128` in portrait orientations).
 - `drawStrRot`, `drawCharRot`, and `drawImageRot` support `0/90/180/270` rotation.
 - `measureText` and `measureTextRot` help with centered/right-aligned layout using the built-in 8x8 font.
 - Text can be drawn with transparent background by passing `opaque_bg=false`.
 - Basic primitives are available: `drawLine`, `drawRect`, `fillRect`, `drawCircle`, `fillCircle`, `drawRoundRect`, `fillRoundRect`, `drawHLine`, `drawVLine`.
+- Enhanced helpers include `drawLineThick`, `drawRectThick`, `drawCircleThick`, `drawRoundRectThick`, `drawFrame`, `drawRoundFrame`, `drawTriangle`, `fillTriangle`, `drawEllipse`, `fillEllipse`, and `drawProgressBar`.
 - `drawBitmapMasked` draws 1bpp sprites with a same-format 1bpp transparency mask.
 - The implementation still uses a single 1024-byte framebuffer and does not allocate an extra rotation buffer.
+
+## Button Input Helper
+
+`fun.input.Button` supports buttons on arbitrary GPIO pins:
+
+```zig
+const a = fun.input.Button.init(.{
+    .pin = fun.gpio.pin(.D, 1),
+    .pull = .up,
+    .active = .low,
+});
+const b = fun.input.button(.{
+    .pin = fun.gpio.pin(.D, 3),
+    .pull = .down,
+    .active = .high,
+});
+
+if (a.isPressed() or b.isPressed()) {
+    // ...
+}
+```
+
+The older `initButtonPd1Pullup()` / `isButtonPressed()` helpers remain as
+PD1 active-low shortcuts for existing examples.
 
 ## IR Text Example Wiring
 
@@ -215,10 +244,19 @@ available through `@import("ch32fun")`:
 chzig init my_firmware
 cd my_firmware
 zig build
+chzig flash
+chzig minichlink -i
+chzig minichlink -3
+chzig minichlink -r dump.bin flash 16384
 ```
 
 By default the installer writes `chzig` to `$HOME/.local/bin`. Use
 `sh tools/install-chzig.sh --prefix /path/to/prefix` to choose another prefix.
+The installer also bundles `../ch32fun/minichlink/minichlink` into the install
+prefix, so `chzig flash` can build and write `zig-out/firmware/firmware.bin`
+without depending on the original checkout layout.
+For advanced programmer operations, `chzig minichlink ...` passes every argument
+through to the bundled `minichlink` binary unchanged.
 
 ## Using as a Dependency
 

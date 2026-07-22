@@ -17,7 +17,7 @@ OPTIMIZE="${1:-ReleaseSmall}"
 # Keep this list in sync with the `examples` array in build.zig.
 EXAMPLES="blinky gpio_input timer_irq oled persistent_counter uart_hello \
 led_fade tone_song adc_meter exti_button compile_time_morse \
-state_machine_game packed_settings comptime_lookup spi_loopback uart_dma ir_text"
+state_machine_game packed_settings comptime_lookup spi_loopback uart_dma ir_text register_blinky"
 
 # Pick a size tool if one exists.
 SIZE_TOOL=""

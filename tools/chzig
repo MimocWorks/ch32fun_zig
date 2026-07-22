@@ -2,11 +2,14 @@
 set -eu
 
 EMBEDDED_CH32FUN_ZIG_HOME="@CH32FUN_ZIG_HOME@"
+EMBEDDED_MINICHLINK="@MINICHLINK@"
 
 usage() {
   cat <<'EOF'
 Usage:
   chzig init [directory] [--name NAME] [--force] [--ch32fun-zig PATH]
+  chzig flash [--bin PATH] [--no-build] [--minichlink PATH] [-- BUILD_ARGS...]
+  chzig minichlink [MINICHLINK_ARGS...]
   chzig help
 
 Creates a CH32V003 Zig firmware project using this ch32fun_zig package.
@@ -15,6 +18,16 @@ Options:
   --name NAME          Zig package / firmware name. Defaults to directory name.
   --force             Allow overwriting generated files.
   --ch32fun-zig PATH  Override the ch32fun_zig dependency path.
+
+Flash options:
+  --bin PATH           Firmware binary to write. Defaults to zig-out/firmware/firmware.bin.
+  --no-build           Skip `zig build` before flashing.
+  --minichlink PATH    Override bundled minichlink.
+  -- BUILD_ARGS...     Extra args passed to `zig build`.
+
+Minichlink passthrough:
+  All args after `chzig minichlink` are passed unchanged to the bundled
+  minichlink binary. Set MINICHLINK=/path/to/minichlink to override it.
 EOF
 }
 
@@ -58,6 +71,33 @@ default_package_home() {
   fi
 
   die "cannot locate ch32fun_zig; set CH32FUN_ZIG_HOME or reinstall with tools/install-chzig.sh"
+}
+
+default_minichlink() {
+  if [ "${MINICHLINK:-}" ]; then
+    printf '%s\n' "$MINICHLINK"
+    return
+  fi
+
+  if [ "$EMBEDDED_MINICHLINK" != "@MINICHLINK@" ]; then
+    printf '%s\n' "$EMBEDDED_MINICHLINK"
+    return
+  fi
+
+  sd=$(script_dir)
+  repo_candidate=$(cd "$sd/.." && pwd -P)
+  checkout_candidate="$repo_candidate/../ch32fun/minichlink/minichlink"
+  if [ -x "$checkout_candidate" ]; then
+    printf '%s\n' "$checkout_candidate"
+    return
+  fi
+
+  if command -v minichlink >/dev/null 2>&1; then
+    command -v minichlink
+    return
+  fi
+
+  die "minichlink not found; run tools/install-chzig.sh after building ../ch32fun/minichlink"
 }
 
 sanitize_name() {
@@ -261,6 +301,70 @@ EOF
   printf 'next: cd %s && zig build\n' "$target_abs"
 }
 
+cmd_flash() {
+  bin="zig-out/firmware/firmware.bin"
+  build=1
+  minichlink=""
+  build_args=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --bin)
+        [ "$#" -ge 2 ] || die "--bin requires a value"
+        bin=$2
+        shift 2
+        ;;
+      --no-build)
+        build=0
+        shift
+        ;;
+      --minichlink)
+        [ "$#" -ge 2 ] || die "--minichlink requires a value"
+        minichlink=$2
+        shift 2
+        ;;
+      --)
+        shift
+        build_args="$*"
+        break
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      -*)
+        die "unknown flash option: $1"
+        ;;
+      *)
+        die "unexpected flash argument: $1"
+        ;;
+    esac
+  done
+
+  if [ -z "$minichlink" ]; then
+    minichlink=$(default_minichlink)
+  fi
+  [ -x "$minichlink" ] || die "minichlink is not executable: $minichlink"
+
+  if [ "$build" -eq 1 ]; then
+    if [ -n "$build_args" ]; then
+      # shellcheck disable=SC2086
+      zig build $build_args
+    else
+      zig build
+    fi
+  fi
+
+  [ -f "$bin" ] || die "missing binary: $bin"
+  exec "$minichlink" -w "$bin" flash -b
+}
+
+cmd_minichlink() {
+  minichlink=$(default_minichlink)
+  [ -x "$minichlink" ] || die "minichlink is not executable: $minichlink"
+  exec "$minichlink" "$@"
+}
+
 refresh_fingerprint() {
   zon=$1
   project_dir=$2
@@ -289,6 +393,14 @@ case "${1:-help}" in
   init)
     shift
     cmd_init "$@"
+    ;;
+  flash)
+    shift
+    cmd_flash "$@"
+    ;;
+  minichlink|ml)
+    shift
+    cmd_minichlink "$@"
     ;;
   help|-h|--help)
     usage

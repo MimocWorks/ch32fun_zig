@@ -23,6 +23,7 @@ const examples = [_]Example{
     .{ .name = "spi_loopback", .path = "examples/spi_loopback/main.zig" },
     .{ .name = "uart_dma", .path = "examples/uart_dma/main.zig" },
     .{ .name = "ir_text", .path = "examples/ir_text/main.zig" },
+    .{ .name = "register_blinky", .path = "examples/register_blinky/main.zig" },
 };
 
 fn resolveExample(name: []const u8) ?Example {
@@ -130,7 +131,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Optimization mode") orelse .ReleaseSmall;
     const example_name = b.option([]const u8, "example", "Example to build") orelse "blinky";
     const selected = resolveExample(example_name) orelse {
-        std.debug.print("Unknown example '{s}'. Available: blinky, gpio_input, timer_irq, oled, persistent_counter, uart_hello, led_fade, tone_song, adc_meter, exti_button, compile_time_morse, state_machine_game, packed_settings, comptime_lookup, spi_loopback, uart_dma, ir_text\n", .{example_name});
+        std.debug.print("Unknown example '{s}'. Available: blinky, gpio_input, timer_irq, oled, persistent_counter, uart_hello, led_fade, tone_song, adc_meter, exti_button, compile_time_morse, state_machine_game, packed_settings, comptime_lookup, spi_loopback, uart_dma, ir_text, register_blinky\n", .{example_name});
         @panic("invalid example");
     };
 
