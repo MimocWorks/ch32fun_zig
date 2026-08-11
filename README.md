@@ -214,6 +214,7 @@ CH32V003; reduce it to 3.3V or below with a resistor divider or level shifter.
 Notes:
 - I2C is configured as `1MHz` Fast mode.
 - SSD1306 I2C address is detected automatically (`0x3C`, then `0x3D`).
+- SSD1306 panel geometry defaults to `128x64`. For a `128x32` panel, declare `pub const ch32fun_ssd1306_panel_size = .@"128x32";` in the application root. Initialization, coordinates, full-buffer size, and transferred page count switch together.
 
 ## SSD1306 Drawing Helpers
 
@@ -226,7 +227,7 @@ Notes:
 - Basic primitives are available: `drawLine`, `drawRect`, `fillRect`, `drawCircle`, `fillCircle`, `drawRoundRect`, `fillRoundRect`, `drawHLine`, `drawVLine`.
 - Enhanced helpers include `drawLineThick`, `drawRectThick`, `drawCircleThick`, `drawRoundRectThick`, `drawFrame`, `drawRoundFrame`, `drawTriangle`, `fillTriangle`, `drawEllipse`, `fillEllipse`, and `drawProgressBar`.
 - `drawBitmapMasked` draws 1bpp sprites with a same-format 1bpp transparency mask.
-- Full-buffer mode remains the default and uses 1,024 bytes. Declare `pub const ch32fun_ssd1306_buffer_mode = .page;` to select a 128-byte page buffer; render an immutable scene between `firstPage()` and repeated `nextPage()` calls. See [SSD1306 page rendering](docs/ssd1306-page-rendering.md).
+- Full-buffer mode remains the default and uses 1,024 bytes for 128x64 or 512 bytes for 128x32. Declare `pub const ch32fun_ssd1306_buffer_mode = .page;` to select a 128-byte page buffer; render an immutable scene between `firstPage()` and repeated `nextPage()` calls. See [SSD1306 page rendering](docs/ssd1306-page-rendering.md).
 
 ## Button Input Helper
 

@@ -16,6 +16,10 @@ pub const BufferMode = enum {
     full,
     page,
 };
+pub const PanelSize = enum {
+    @"128x32",
+    @"128x64",
+};
 
 pub const buffer_mode: BufferMode = if (builtin.is_test)
     .page
@@ -24,10 +28,26 @@ else if (@hasDecl(root, "ch32fun_ssd1306_buffer_mode"))
 else
     .full;
 
+pub const panel_size: PanelSize = if (@hasDecl(root, "ch32fun_ssd1306_panel_size"))
+    root.ch32fun_ssd1306_panel_size
+else
+    .@"128x64";
 pub const width: u8 = 128;
-pub const height: u8 = 64;
+fn panelHeight(size: PanelSize) u8 {
+    return switch (size) {
+        .@"128x32" => 32,
+        .@"128x64" => 64,
+    };
+}
+
+pub const height: u8 = panelHeight(panel_size);
 const width_us: usize = width;
 const height_us: usize = height;
+const multiplex_ratio: u8 = height - 1;
+const com_pins_config: u8 = switch (panel_size) {
+    .@"128x32" => 0x02,
+    .@"128x64" => 0x12,
+};
 const packet_size: usize = 32;
 pub const Address = enum(u7) {
     primary = 0x3c,
@@ -110,7 +130,7 @@ pub const PageBuffer = struct {
 
 const active_buffer_size = if (buffer_mode == .page) page_buffer_size else width_us * height_us / 8;
 
-/// Active drawing storage: 128 bytes in `.page`, 1,024 bytes in `.full`.
+/// Active drawing storage: 128 bytes in `.page`; `.full` matches panel size.
 pub var buffer: [active_buffer_size]u8 = [_]u8{0} ** active_buffer_size;
 var current_page: u3 = 0;
 var current_orientation: Orientation = .landscape;
@@ -122,7 +142,7 @@ const init_commands_ssd1306 = [_]u8{
     0xD5,
     0x80,
     0xA8,
-    0x3F,
+    multiplex_ratio,
     0xD3,
     0x00,
     0x40,
@@ -133,7 +153,7 @@ const init_commands_ssd1306 = [_]u8{
     0xA1,
     0xC8,
     0xDA,
-    0x12,
+    com_pins_config,
     0x81,
     0xCF,
     0xD9,
@@ -153,7 +173,7 @@ const init_commands_ssd1309 = [_]u8{
     0xD5,
     0x80,
     0xA8,
-    0x3F,
+    multiplex_ratio,
     0xD3,
     0x00,
     0x40,
@@ -162,7 +182,7 @@ const init_commands_ssd1309 = [_]u8{
     0xA1,
     0xC8,
     0xDA,
-    0x12,
+    com_pins_config,
     0x81,
     0xCF,
     0xD9,
@@ -179,7 +199,7 @@ const init_commands_sh1106 = [_]u8{
     0xD5,
     0x80,
     0xA8,
-    0x3F,
+    multiplex_ratio,
     0xD3,
     0x00,
     0x40,
@@ -188,7 +208,7 @@ const init_commands_sh1106 = [_]u8{
     0xA1,
     0xC8,
     0xDA,
-    0x12,
+    com_pins_config,
     0x81,
     0xCF,
     0xD9,
@@ -471,7 +491,7 @@ pub fn refresh() !void {
 
     try cmd(0x22);
     try cmd(0);
-    try cmd(7);
+    try cmd(page_count - 1);
 
     var i: usize = 0;
     while (i < buffer.len) : (i += packet_size) {
@@ -482,7 +502,7 @@ pub fn refresh() !void {
 
 fn refreshSh1106() !void {
     var page: u8 = 0;
-    while (page < 8) : (page += 1) {
+    while (page < page_count) : (page += 1) {
         try cmd(0xB0 | page);
         try cmd(0x02);
         try cmd(0x10);
@@ -989,6 +1009,12 @@ test "page buffer clips coordinates and maps boundary bits" {
     try testing.expectEqual(@as(u8, 0x01), buffer[2]);
     drawPixel(2, 8, false);
     try testing.expectEqual(@as(u8, 0x00), buffer[2]);
+}
+
+test "panel size maps to supported geometries" {
+    const testing = @import("std").testing;
+    try testing.expectEqual(@as(u8, 32), panelHeight(.@"128x32"));
+    try testing.expectEqual(@as(u8, 64), panelHeight(.@"128x64"));
 }
 
 test "vertical line and glyph split cleanly across pages" {

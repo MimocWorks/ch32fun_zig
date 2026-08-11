@@ -210,6 +210,7 @@ HC-SR04 の ECHO は 5V ロジックです。CH32V003へ直接接続せず、抵
 注:
 - I2C は `1MHz` Fast mode 設定です。
 - SSD1306 I2C アドレスは `0x3C`、`0x3D` の順に自動検出します。
+- SSD1306の画面サイズは既定で`128x64`です。`128x32`品ではアプリケーションのルートに`pub const ch32fun_ssd1306_panel_size = .@"128x32";`を宣言します。初期化、座標、フルバッファ容量、転送ページ数がまとめて切り替わります。
 
 ## SSD1306 描画ヘルパ
 
@@ -224,7 +225,7 @@ HC-SR04 の ECHO は 5V ロジックです。CH32V003へ直接接続せず、抵
 - 基本図形として `drawLine` / `drawRect` / `fillRect` / `drawCircle` / `fillCircle` / `drawRoundRect` / `fillRoundRect` / `drawHLine` / `drawVLine` を追加しています。
 - 拡張ヘルパとして `drawLineThick` / `drawRectThick` / `drawCircleThick` / `drawRoundRectThick` / `drawFrame` / `drawRoundFrame` / `drawTriangle` / `fillTriangle` / `drawEllipse` / `fillEllipse` / `drawProgressBar` を追加しています。
 - `drawBitmapMasked` で同形式の 1bpp マスク付きスプライト描画ができます。
-- 既定のフルバッファ方式は1,024バイトです。ルートソースへ `pub const ch32fun_ssd1306_buffer_mode = .page;` を宣言すると128バイトのページバッファになり、`firstPage()`から`nextPage()`がfalseになるまで同じ読み取り専用の画面を描画します。詳細は[SSD1306ページ描画](docs/ssd1306-page-rendering.md)を参照してください。
+- 既定のフルバッファ方式は128x64で1,024バイト、128x32で512バイトです。ルートソースへ `pub const ch32fun_ssd1306_buffer_mode = .page;` を宣言すると128バイトのページバッファになり、`firstPage()`から`nextPage()`がfalseになるまで同じ読み取り専用の画面を描画します。詳細は[SSD1306ページ描画](docs/ssd1306-page-rendering.md)を参照してください。
 
 ## ボタン入力ヘルパ
 

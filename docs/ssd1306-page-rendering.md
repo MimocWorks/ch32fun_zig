@@ -1,14 +1,21 @@
 # SSD1306 page rendering
 
 `ch32fun_zig` supports two compile-time drawing-storage modes. The default
-`.full` mode stores the complete 128x64 1-bit image in 1,024 bytes and preserves
-the legacy `setbuf()` / drawing / `refresh()` flow. `.page` stores one 128x8
-GDDRAM page in 128 bytes, recovering 896 bytes of static RAM.
+`.full` mode stores the complete image in 1,024 bytes for 128x64 or 512 bytes for
+128x32 and preserves the legacy `setbuf()` / drawing / `refresh()` flow. `.page`
+stores one 128x8 GDDRAM page in 128 bytes, recovering 896 or 384 bytes of static
+RAM respectively.
 
 Select page mode in the application root:
 
 ```zig
 pub const ch32fun_ssd1306_buffer_mode = .page;
+```
+
+Select a 128x32 panel (128x64 remains the default):
+
+```zig
+pub const ch32fun_ssd1306_panel_size = .@"128x32";
 ```
 
 Render a complete immutable picture in a picture loop:
@@ -22,8 +29,9 @@ while (true) {
 }
 ```
 
-In page mode `drawScreen` runs eight times. It must not consume input, advance a
-clock, mutate game/protocol state, or create another large image copy. Snapshot
+In page mode `drawScreen` runs eight times for 128x64 or four times for 128x32.
+It must not consume input, advance a clock, mutate game/protocol state, or create
+another large image copy. Snapshot
 small scalars by value and reference existing fixed storage with bounded slices.
 The renderer maps logical orientation first, then rejects pixels outside the
 current physical page before indexing the 128-byte array. Consequently text,
@@ -37,8 +45,8 @@ the same picture-loop API draws once and refreshes the full image, so reusable
 application drawing code does not need a mode branch. The unselected buffer size
 is eliminated at comptime and consumes no static RAM in the final image.
 
-Page mode keeps the I2C payload at 1,024 bytes per complete display update but
-recomputes the scene eight times and sends page-address commands per band. Prefer
+Page mode keeps the I2C payload at the panel's full image size per display update
+but recomputes the scene for each page and sends page-address commands per band. Prefer
 it where RAM is scarce; prefer full mode where CPU time is more important. A
 future dirty-page policy can be added above `writePage()`, but is intentionally
 not part of the current state or RAM budget.
