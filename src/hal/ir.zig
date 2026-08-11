@@ -144,10 +144,32 @@ pub fn sendPacket32(tx: Tx, packet: u32) void {
     setTx(tx, false);
 }
 
+/// Sends one state byte using the same NEC-like envelope as the wider packet
+/// helpers. This compact form is useful for low-latency button/state links.
+pub fn sendPacket8(tx: Tx, packet: u8) void {
+    mark(tx, leader_mark_us);
+    space(tx, leader_space_us);
+    sendByte(tx, packet);
+    mark(tx, trailer_mark_us);
+    setTx(tx, false);
+}
+
+/// Receives the compact frame emitted by `sendPacket8`.
+pub fn recvPacket8(rx: Rx, start_timeout_us: u32) Error!u8 {
+    try waitForLeaderMark(rx, Deadline.start(start_timeout_us));
+
+    const ls = try measurePulse(rx, false, pulseDeadline());
+    if (!inRange(ls, 3_200, 5_800)) return Error.BadHeader;
+
+    const packet = try recvByte(rx);
+    const tm = try measurePulse(rx, true, pulseDeadline());
+    if (!validBitMark(tm)) return Error.MalformedPulse;
+    return packet;
+}
+
 /// Receives the fixed-size frame emitted by `sendPacket32`.
 pub fn recvPacket32(rx: Rx, start_timeout_us: u32) Error!u32 {
-    const lm = try measurePulse(rx, true, Deadline.start(start_timeout_us));
-    if (!inRange(lm, 7_000, 11_000)) return Error.BadHeader;
+    try waitForLeaderMark(rx, Deadline.start(start_timeout_us));
 
     const ls = try measurePulse(rx, false, pulseDeadline());
     if (!inRange(ls, 3_200, 5_800)) return Error.BadHeader;
@@ -181,8 +203,7 @@ pub fn sendPacket64(tx: Tx, packet: u64) void {
 
 /// Receives the fixed-size frame emitted by `sendPacket64`.
 pub fn recvPacket64(rx: Rx, start_timeout_us: u32) Error!u64 {
-    const lm = try measurePulse(rx, true, Deadline.start(start_timeout_us));
-    if (!inRange(lm, 7_000, 11_000)) return Error.BadHeader;
+    try waitForLeaderMark(rx, Deadline.start(start_timeout_us));
 
     const ls = try measurePulse(rx, false, pulseDeadline());
     if (!inRange(ls, 3_200, 5_800)) return Error.BadHeader;
@@ -211,8 +232,7 @@ pub fn sendFrame8(tx: Tx, frame: *const [8]u8) void {
 
 /// Receives an eight-byte fixed frame into caller-provided storage.
 pub fn recvFrame8(rx: Rx, out: *[8]u8, start_timeout_us: u32) Error!void {
-    const lm = try measurePulse(rx, true, Deadline.start(start_timeout_us));
-    if (!inRange(lm, 7_000, 11_000)) return Error.BadHeader;
+    try waitForLeaderMark(rx, Deadline.start(start_timeout_us));
 
     const ls = try measurePulse(rx, false, pulseDeadline());
     if (!inRange(ls, 3_200, 5_800)) return Error.BadHeader;
@@ -231,8 +251,7 @@ pub fn recvBytes(rx: Rx, out: []u8, start_timeout_us: u32) Error![]u8 {
     // frame cannot expire merely because its complete payload is long.
     const start_deadline = Deadline.start(start_timeout_us);
 
-    const lm = try measurePulse(rx, true, start_deadline);
-    if (!near(lm, leader_mark_us)) return Error.BadHeader;
+    try waitForLeaderMark(rx, start_deadline);
     const ls = try measurePulse(rx, false, pulseDeadline());
     if (!near(ls, leader_space_us)) return Error.BadHeader;
 
@@ -361,6 +380,16 @@ fn measurePulse(rx: Rx, mark_level: bool, deadline: Deadline) Error!u32 {
         if (deadline.expired()) return Error.Timeout;
     }
     return time.elapsedUsSince(start);
+}
+
+/// Skips short marks and frame fragments until a valid leader is found.
+/// Keeping one start deadline prevents continuous noise from blocking forever.
+fn waitForLeaderMark(rx: Rx, deadline: Deadline) Error!void {
+    while (true) {
+        const mark_us = try measurePulse(rx, true, deadline);
+        if (inRange(mark_us, 7_000, 11_000)) return;
+        if (deadline.expired()) return Error.Timeout;
+    }
 }
 
 fn waitForLevel(rx: Rx, mark_level: bool, deadline: Deadline) Error!void {
