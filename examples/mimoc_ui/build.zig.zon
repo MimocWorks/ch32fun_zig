@@ -1,0 +1,11 @@
+.{
+    .name = .mimoc_ui_ch32v003,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0x6fd6d083ca71f713,
+    .dependencies = .{
+        .ch32fun_zig = .{ .path = "../.." },
+        .mimoc_ui = .{ .path = "../../../mimoc-ui" },
+    },
+    .paths = .{ "build.zig", "build.zig.zon", "src", "README.md" },
+}
