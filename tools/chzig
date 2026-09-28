@@ -2,14 +2,13 @@
 set -eu
 
 EMBEDDED_CH32FUN_ZIG_HOME="@CH32FUN_ZIG_HOME@"
-EMBEDDED_MINICHLINK="@MINICHLINK@"
+EMBEDDED_WCHLINKE="@WCHLINKE@"
 
 usage() {
   cat <<'EOF'
 Usage:
   chzig init [directory] [--name NAME] [--force] [--ch32fun-zig PATH]
-  chzig flash [--bin PATH] [--no-build] [--minichlink PATH] [-- BUILD_ARGS...]
-  chzig minichlink [MINICHLINK_ARGS...]
+  chzig flash [--bin PATH] [--no-build] [--wchlinke PATH] [-- BUILD_ARGS...]
   chzig help
 
 Creates a CH32V003 Zig firmware project using this ch32fun_zig package.
@@ -22,12 +21,10 @@ Options:
 Flash options:
   --bin PATH           Firmware binary to write. Defaults to zig-out/firmware/firmware.bin.
   --no-build           Skip `zig build` before flashing.
-  --minichlink PATH    Override bundled minichlink.
+  --wchlinke PATH      Override bundled WCH-LinkE writer.
   -- BUILD_ARGS...     Extra args passed to `zig build`.
 
-Minichlink passthrough:
-  All args after `chzig minichlink` are passed unchanged to the bundled
-  minichlink binary. Set MINICHLINK=/path/to/minichlink to override it.
+The writer supports CH32V003 with WCH-LinkE in RISC-V mode.
 EOF
 }
 
@@ -73,31 +70,26 @@ default_package_home() {
   die "cannot locate ch32fun_zig; set CH32FUN_ZIG_HOME or reinstall with tools/install-chzig.sh"
 }
 
-default_minichlink() {
-  if [ "${MINICHLINK:-}" ]; then
-    printf '%s\n' "$MINICHLINK"
+default_wchlinke() {
+  if [ "${WCHLINKE:-}" ]; then
+    printf '%s\n' "$WCHLINKE"
     return
   fi
 
-  if [ "$EMBEDDED_MINICHLINK" != "@MINICHLINK@" ]; then
-    printf '%s\n' "$EMBEDDED_MINICHLINK"
+  if [ "$EMBEDDED_WCHLINKE" != "@WCHLINKE@" ]; then
+    printf '%s\n' "$EMBEDDED_WCHLINKE"
     return
   fi
 
   sd=$(script_dir)
   repo_candidate=$(cd "$sd/.." && pwd -P)
-  checkout_candidate="$repo_candidate/../ch32fun/minichlink/minichlink"
+  checkout_candidate="$repo_candidate/zig-out/bin/wchlinke"
   if [ -x "$checkout_candidate" ]; then
     printf '%s\n' "$checkout_candidate"
     return
   fi
 
-  if command -v minichlink >/dev/null 2>&1; then
-    command -v minichlink
-    return
-  fi
-
-  die "minichlink not found; run tools/install-chzig.sh after building ../ch32fun/minichlink"
+  die "WCH-LinkE writer not found; run zig build or tools/install-chzig.sh"
 }
 
 sanitize_name() {
@@ -392,7 +384,7 @@ EOF
 cmd_flash() {
   bin="zig-out/firmware/firmware.bin"
   build=1
-  minichlink=""
+  wchlinke=""
   build_args=""
 
   while [ "$#" -gt 0 ]; do
@@ -406,9 +398,9 @@ cmd_flash() {
         build=0
         shift
         ;;
-      --minichlink)
-        [ "$#" -ge 2 ] || die "--minichlink requires a value"
-        minichlink=$2
+      --wchlinke)
+        [ "$#" -ge 2 ] || die "--wchlinke requires a value"
+        wchlinke=$2
         shift 2
         ;;
       --)
@@ -429,11 +421,6 @@ cmd_flash() {
     esac
   done
 
-  if [ -z "$minichlink" ]; then
-    minichlink=$(default_minichlink)
-  fi
-  [ -x "$minichlink" ] || die "minichlink is not executable: $minichlink"
-
   if [ "$build" -eq 1 ]; then
     if [ -n "$build_args" ]; then
       # shellcheck disable=SC2086
@@ -443,15 +430,14 @@ cmd_flash() {
     fi
   fi
 
+  if [ -z "$wchlinke" ]; then
+    wchlinke=$(default_wchlinke)
+  fi
+  [ -x "$wchlinke" ] || die "WCH-LinkE writer is not executable: $wchlinke"
+
   [ -f "$bin" ] || die "missing binary: $bin"
   print_memory_usage "$bin"
-  exec "$minichlink" -w "$bin" flash -b
-}
-
-cmd_minichlink() {
-  minichlink=$(default_minichlink)
-  [ -x "$minichlink" ] || die "minichlink is not executable: $minichlink"
-  exec "$minichlink" "$@"
+  exec "$wchlinke" "$bin"
 }
 
 refresh_fingerprint() {
@@ -486,10 +472,6 @@ case "${1:-help}" in
   flash)
     shift
     cmd_flash "$@"
-    ;;
-  minichlink|ml)
-    shift
-    cmd_minichlink "$@"
     ;;
   help|-h|--help)
     usage

@@ -9,14 +9,14 @@ English version: [README.md](README.md)
 
 - CH32V003 向けの pure Zig 実装
 - `zig build -Dexample=<name>` でサンプル切り替え
-- `zig build ... flash` で `minichlink` による書き込み
+- `zig build ... flash` で Zig 製 WCH-LinkE 専用ツールによる書き込み
 - SSD1306 (I2C) とボタン入力のサンプルを同梱
 
 ## 動作環境
 
 - Zig `0.16.0`（確認済み: `0.16.0`）
-- `../ch32fun/minichlink/minichlink`（`flash` 実行時に必要）
-- Linux/macOS のシェル環境（`sh`, `make`）
+- WCH-LinkE（RISC-V モード）と実行時の libusb 1.0（書き込み時）
+- Linux/macOS のシェル環境（`sh`）
 - 任意（`disasm` / `mapfile` / `size` を使う場合のみ）:
   - `llvm-objdump` / `llvm-nm` / `llvm-size`、または
   - `riscv-none-elf-objdump` / `riscv-none-elf-nm` / `riscv-none-elf-size`
@@ -35,16 +35,16 @@ brew install llvm
 # brew の llvm を PATH に通す
 echo 'export PATH="$(brew --prefix llvm)/bin:$PATH"' >> ~/.zshrc
 
-# minichlink のビルドに libusb が必要
-brew install libusb pkg-config
+# WCH-LinkE 専用ツールの USB 通信に libusb が必要
+brew install libusb
 ```
 
 ### Linux（Debian / Ubuntu）
 
 ```sh
-# minichlink ビルドに必要なツールチェインと libusb
+# WCH-LinkE 専用ツールの実行時に libusb が必要
 sudo apt update
-sudo apt install -y build-essential git pkg-config libusb-1.0-0-dev
+sudo apt install -y libusb-1.0-0
 
 # LLVM ツール群（任意。disasm / mapfile / size を使う場合のみ）
 sudo apt install -y llvm
@@ -53,7 +53,7 @@ sudo apt install -y llvm
 ### Linux（Arch）
 
 ```sh
-sudo pacman -S --needed base-devel git pkgconf libusb llvm
+sudo pacman -S --needed libusb llvm
 ```
 
 ### 公式 tarball から Zig 0.16 を入れる（Mac/Linux）
@@ -83,27 +83,13 @@ zig version   # 0.16.0 が表示されれば OK
 
 ## セットアップ
 
-1. このリポジトリと同じ階層に `ch32fun` を clone し、`minichlink` をビルドします。
-
-```sh
-# build.zig が想定するディレクトリ配置
-# .
-# ├── ch32fun/
-# └── ch32fun_zig/   <-- 今ここ
-
-cd ..
-git clone https://github.com/cnlohr/ch32fun.git
-make -C ch32fun/minichlink
-cd ch32fun_zig
-```
-
-2. サンプルをビルドします。
+1. サンプルをビルドします。
 
 ```sh
 zig build -Dexample=blinky
 ```
 
-3. マイコンへ書き込みます。
+2. マイコンへ書き込みます。
 
 ```sh
 zig build -Dexample=blinky flash
@@ -173,7 +159,7 @@ fun.swio_log.err("failed code={d}", .{code});
 ```sh
 zig build -Dexample=swio_log -Doptimize=ReleaseSmall
 zig build -Dexample=swio_log -Doptimize=ReleaseSmall flash
-chzig minichlink -T
+minichlink -T # SWIO ターミナルを使う場合だけ別途インストール
 ```
 
 root宣言がない`ReleaseSmall`、`ReleaseFast`、`ReleaseSafe`では`swio_log.enabled`が
@@ -301,20 +287,16 @@ chzig init my_firmware
 cd my_firmware
 zig build
 chzig flash
-chzig minichlink -i
-chzig minichlink -3
-chzig minichlink -r dump.bin flash 16384
 ```
 
 デフォルトでは `$HOME/.local/bin/chzig` にインストールします。別の場所へ
 入れる場合は `sh tools/install-chzig.sh --prefix /path/to/prefix` を使います。
-インストーラは `../ch32fun/minichlink/minichlink` も install prefix 内へ同梱するため、
+インストーラはこのリポジトリの Zig 製 WCH-LinkE ツールをビルドして同梱するため、
 `chzig flash` で `zig-out/firmware/firmware.bin` をビルドして書き込めます。
-ビルド後、`chzig flash` は minichlink の起動前に FLASH と RAM の占有率を
+ビルド後、`chzig flash` は書き込み前に FLASH と RAM の占有率を
 パーセント付きのバーで表示します。FLASH はユーザーデータ用の最終64バイトを
 除いた16,320バイトをアプリ領域として計算します。
-高度な書き込み器操作は `chzig minichlink ...` で指定でき、引数は内包
-`minichlink` へそのまま渡されます。
+書き込み後は各 64 バイトページを読み戻して検証します。
 
 ## 出力ファイル
 
@@ -336,9 +318,12 @@ chzig minichlink -r dump.bin flash 16384
 - `examples/`
   - 実行可能サンプル群
 - `tools/flash.sh`
-  - `minichlink` を呼び出す書き込みスクリプト
+  - Zig 製ツールを呼び出す補助スクリプト
+- `tools/wchlinke.zig`
+  - WCH-LinkE 専用書き込みツール
 
 ## 制約
 
 - 現在は CH32V003 を対象にしています。
-- `flash` ターゲットは `../ch32fun/minichlink/minichlink` の存在を前提にしています。
+- 書き込みツールは WCH-LinkE の RISC-V モードと CH32V003 のみ対応します。
+- USB 通信には実行時 libusb 1.0 が必要です。

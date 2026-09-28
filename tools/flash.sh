@@ -8,11 +8,11 @@ fi
 
 EXAMPLE="$1"
 BIN="zig-out/firmware/${EXAMPLE}.bin"
-MINICHLINK="../ch32fun/minichlink/minichlink"
+WCHLINKE="zig-out/bin/wchlinke"
 
-if [ ! -x "$MINICHLINK" ]; then
-  echo "minichlink not found: $MINICHLINK" >&2
-  echo "Build it first: make -C ../ch32fun/minichlink" >&2
+if [ ! -x "$WCHLINKE" ]; then
+  echo "WCH-LinkE tool not found: $WCHLINKE" >&2
+  echo "Build it first: zig build" >&2
   exit 1
 fi
 
@@ -22,4 +22,4 @@ if [ ! -f "$BIN" ]; then
   exit 1
 fi
 
-exec "$MINICHLINK" -w "$BIN" flash -b
+exec "$WCHLINKE" "$BIN"

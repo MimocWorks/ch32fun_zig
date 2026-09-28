@@ -14,7 +14,7 @@
 - `linker.ld` の `> RAM AT > FLASH` トリック
 - `_start` (naked) → `_start_c` の起動シーケンス
 - `build.zig` のステップ DAG と `addObjCopy` の役割
-- `minichlink` + SWIO による書き込み経路
+- Zig 製 WCH-LinkE ツール + SWIO による書き込み経路
 - レジスタ層 / GPIO HAL / SysTick / I2C / SSD1306 の薄い積み重ね
 
 ## 構成
@@ -52,7 +52,7 @@ WeasyPrint は内部で pango / cairo を使う。 macOS なら `brew install pa
 
 - 第 7 章: `build.zig` をひと通り歩く
 - 第 8 章: ELF から `.bin` / `.hex` への変換
-- 第 9 章: minichlink で実機に書き込む
+- 第 9 章: WCH-LinkE で実機に書き込む
 
 ### 第 IV 部 — HAL の構造
 

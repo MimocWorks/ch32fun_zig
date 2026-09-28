@@ -33,16 +33,20 @@
 
 ## 書き込み系
 
-### `minichlink not found`
+### `WCH-LinkE writer not found`
 
-- `tools/flash.sh` は `../ch32fun/minichlink/minichlink` を見るので、 ディレクトリ配置と `make` 済みかを確認
-- `which minichlink` が PATH 上にあるなら、スクリプトの `MINICHLINK` 行を書き換えても良い
+- `zig build` で `zig-out/bin/wchlinke` を生成する
+- `chzig` の場合は `sh tools/install-chzig.sh` で専用ツールを同梱する
 
-### `libusb` 関連で `minichlink` のビルドが通らない
+### `UsbLibraryMissing`
 
-- macOS: `brew install libusb pkg-config`
-- Debian/Ubuntu: `sudo apt install libusb-1.0-0-dev pkg-config`
-- Arch: `sudo pacman -S libusb pkgconf`
+- macOS: `brew install libusb`
+- Debian/Ubuntu: `sudo apt install libusb-1.0-0`
+- Arch: `sudo pacman -S libusb`
+
+### `DeviceNotFound`
+
+- WCH-LinkE が RISC-V モードにあるか、USB ケーブルと接続を確認する
 
 ### USB デバイスが見えない (Linux)
 

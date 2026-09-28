@@ -28,7 +28,7 @@ flowchart TD
     G --> L["zig-out/bin/<name>"]
     H --> M["zig-out/firmware/<name>.bin"]
     I --> N["zig-out/firmware/<name>.hex"]
-    F --> P["flash step → tools/flash.sh"]
+    F --> P["flash step → wchlinke"]
     F --> Q["size / disasm / mapfile step"]
 ```
 
@@ -163,7 +163,7 @@ b.getInstallStep().dependOn(&bin_install.step);
 ```
 
 - **`exe.addObjCopy({ .format = .bin })`** は Zig が内部で `objcopy` 相当の処理を行うステップを作る。 外部の `llvm-objcopy` を呼んでいるわけではなく、 Zig が ELF を読んで Intel HEX や raw binary に変換する処理を持っている。
-- `.bin` (Raw) は `minichlink` への書き込みで使う。
+- `.bin` (Raw) は WCH-LinkE ツールへの書き込みで使う。
 - `.hex` (Intel HEX) は他のツール (ISP プログラマ等) と互換させたいとき用。
 
 詳しい話は次章 (objcopy) に回す。
@@ -206,17 +206,17 @@ mapfile.dependOn(&map_install.step);
 ## flash ステップ
 
 ```zig
-const flash = b.step("flash", "Flash selected example using minichlink");
+const flash = b.step("flash", "Flash selected example using WCH-LinkE");
 flash.dependOn(b.getInstallStep());
 
-const flash_cmd = b.addSystemCommand(&.{ "sh", "tools/flash.sh" });
-flash_cmd.addArg(selected.name);
+const flash_cmd = b.addRunArtifact(wchlinke);
+flash_cmd.addFileArg(bin.getOutput());
 flash_cmd.step.dependOn(b.getInstallStep());
 flash.dependOn(&flash_cmd.step);
 ```
 
-- `flash` ステップは「install 一式」+「flash.sh 実行」の両方に依存する。
-- `flash.sh` は次の章 (第 9 章) で詳しく見るが、 要は `minichlink -w zig-out/firmware/<name>.bin flash -b` を呼ぶだけのシンスクリプト。
+- `flash` ステップはビルド済み `.bin` とホスト向け WCH-LinkE ツールに依存する。
+- WCH-LinkE ツールの動作は次の章 (第 9 章) で扱う。
 
 ---
 
@@ -261,7 +261,7 @@ flowchart TD
     installStep --> binInst
     installStep --> hexInst
     flashStep((flash)) --> installStep
-    flashStep --> flashCmd["sh tools/flash.sh"]
+    flashStep --> flashCmd["wchlinke"]
     disasmStep((disasm)) --> lstInst
     mapfileStep((mapfile)) --> mapInst
     sizeStep((size)) --> sizeCmd["sh llvm-size"]

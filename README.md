@@ -9,14 +9,14 @@ Japanese version: [README_ja.md](README_ja.md)
 
 - Pure Zig implementation for CH32V003
 - Switch examples with `zig build -Dexample=<name>`
-- Flash with `zig build ... flash` via `minichlink`
+- Flash with `zig build ... flash` via the Zig WCH-LinkE writer
 - Includes SSD1306 (I2C) and button-input examples
 
 ## Requirements
 
 - Zig `0.16.0` (verified with `0.16.0`)
-- `../ch32fun/minichlink/minichlink` (required for `flash`)
-- Linux/macOS shell environment (`sh`, `make`)
+- WCH-LinkE in RISC-V mode and libusb 1.0 at flash time
+- Linux/macOS shell environment (`sh`)
 - Optional (for `disasm` / `mapfile` / `size` steps):
   - `llvm-objdump` / `llvm-nm` / `llvm-size`, or
   - `riscv-none-elf-objdump` / `riscv-none-elf-nm` / `riscv-none-elf-size`
@@ -35,16 +35,16 @@ brew install llvm
 # add the brew llvm bin to PATH if not already
 echo 'export PATH="$(brew --prefix llvm)/bin:$PATH"' >> ~/.zshrc
 
-# libusb is required to build minichlink
-brew install libusb pkg-config
+# libusb is loaded by the WCH-LinkE writer at runtime
+brew install libusb
 ```
 
 ### Linux (Debian / Ubuntu)
 
 ```sh
-# Build essentials and libusb for minichlink
+# libusb runtime for the WCH-LinkE writer
 sudo apt update
-sudo apt install -y build-essential git pkg-config libusb-1.0-0-dev
+sudo apt install -y libusb-1.0-0
 
 # LLVM tools (optional, for disasm / mapfile / size)
 sudo apt install -y llvm
@@ -53,7 +53,7 @@ sudo apt install -y llvm
 ### Linux (Arch)
 
 ```sh
-sudo pacman -S --needed base-devel git pkgconf libusb llvm
+sudo pacman -S --needed libusb llvm
 ```
 
 ### Installing Zig 0.16 from the official tarball (Mac/Linux)
@@ -83,27 +83,13 @@ zig version   # should print 0.16.0
 
 ## Setup
 
-1. Clone `ch32fun` next to this repository and build `minichlink`:
-
-```sh
-# directory layout the build expects
-# .
-# ├── ch32fun/
-# └── ch32fun_zig/   <-- you are here
-
-cd ..
-git clone https://github.com/cnlohr/ch32fun.git
-make -C ch32fun/minichlink
-cd ch32fun_zig
-```
-
-2. Build an example:
+1. Build an example:
 
 ```sh
 zig build -Dexample=blinky
 ```
 
-3. Flash to the board:
+2. Flash to the board:
 
 ```sh
 zig build -Dexample=blinky flash
@@ -177,7 +163,7 @@ Build and flash, then start the terminal:
 ```sh
 zig build -Dexample=swio_log -Doptimize=ReleaseSmall
 zig build -Dexample=swio_log -Doptimize=ReleaseSmall flash
-chzig minichlink -T
+minichlink -T # only if you separately install a SWIO terminal
 ```
 
 Without a root override, `swio_log.enabled` is compile-time false in `ReleaseSmall`,
@@ -307,21 +293,17 @@ chzig init my_firmware
 cd my_firmware
 zig build
 chzig flash
-chzig minichlink -i
-chzig minichlink -3
-chzig minichlink -r dump.bin flash 16384
 ```
 
 By default the installer writes `chzig` to `$HOME/.local/bin`. Use
 `sh tools/install-chzig.sh --prefix /path/to/prefix` to choose another prefix.
-The installer also bundles `../ch32fun/minichlink/minichlink` into the install
+The installer builds and bundles this repository's Zig WCH-LinkE writer into the install
 prefix, so `chzig flash` can build and write `zig-out/firmware/firmware.bin`
 without depending on the original checkout layout.
 After building, `chzig flash` prints FLASH and RAM usage as percentage bars
-before invoking minichlink. FLASH is measured against the 16,320-byte
+before flashing. FLASH is measured against the 16,320-byte
 application region; the final 64-byte page remains reserved for user data.
-For advanced programmer operations, `chzig minichlink ...` passes every argument
-through to the bundled `minichlink` binary unchanged.
+Each written 64-byte page is read back for verification.
 
 ## Using as a Dependency
 
@@ -374,9 +356,12 @@ Optional artifacts (generated only when their step is run explicitly):
 - `examples/`
   - Buildable firmware examples
 - `tools/flash.sh`
-  - Flash helper script that calls `minichlink`
+  - Flash helper script that calls the Zig writer
+- `tools/wchlinke.zig`
+  - WCH-LinkE flash writer
 
 ## Current Scope / Limitations
 
 - CH32V003 only (for now)
-- `flash` target assumes `../ch32fun/minichlink/minichlink` exists
+- Writer supports WCH-LinkE in RISC-V mode and CH32V003 only
+- libusb 1.0 is required at runtime for USB transport

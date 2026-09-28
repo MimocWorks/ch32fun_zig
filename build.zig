@@ -225,11 +225,21 @@ pub fn build(b: *std.Build) void {
     const map_install = b.addInstallFileWithDir(map_file, .{ .custom = "firmware" }, b.fmt("{s}.map", .{selected.name}));
     map_install.step.dependOn(&map_cmd.step);
 
-    const flash = b.step("flash", "Flash selected example using minichlink");
+    const wchlinke = b.addExecutable(.{
+        .name = "wchlinke",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/wchlinke.zig"),
+            .target = b.graph.host,
+            .optimize = .ReleaseSafe,
+        }),
+    });
+    b.installArtifact(wchlinke);
+
+    const flash = b.step("flash", "Flash selected example using WCH-LinkE");
     flash.dependOn(b.getInstallStep());
 
-    const flash_cmd = b.addSystemCommand(&.{ "sh", "tools/flash.sh" });
-    flash_cmd.addArg(selected.name);
+    const flash_cmd = b.addRunArtifact(wchlinke);
+    flash_cmd.addFileArg(bin.getOutput());
     flash_cmd.step.dependOn(b.getInstallStep());
     flash.dependOn(&flash_cmd.step);
 

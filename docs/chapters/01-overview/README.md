@@ -18,7 +18,7 @@
 - **CH32V003 (RISC-V RV32EC, 48MHz, FLASH 16K / SRAM 2K)** を主ターゲットとする
 - **追加の RISC-V ツールチェイン (`riscv-none-elf-gcc` など) を必要としない**
   - Zig 自身が内蔵する LLVM バックエンドが RISC-V コードを直接生成する
-- 書き込みのみ、ch32fun リポジトリに同梱の `minichlink` をそのまま使う
+- 書き込みはこのリポジトリの Zig 製 WCH-LinkE ツールを使う
 - `zig build` ひとつで `.elf` / `.bin` / `.hex` まで生成し、`zig build flash` でそのまま MCU に書き込める
 - HAL は GPIO / SysTick / I2C / SSD1306 / 入力ボタンといった「最低限よくある」ものに絞ってある
 
@@ -62,7 +62,7 @@ flowchart TD
     I --> J["ELF .elf"]
     J -->|"addObjCopy bin"| K["zig-out/firmware/*.bin"]
     J -->|"addObjCopy hex"| L["zig-out/firmware/*.hex"]
-    K -->|"tools/flash.sh"| M["minichlink → CH32V003"]
+    K -->|"tools/wchlinke.zig"| M["WCH-LinkE → CH32V003"]
 ```
 
 ポイントは大きく 4 段に分かれる:
@@ -70,7 +70,7 @@ flowchart TD
 1. **アプリ層** — `examples/*/main.zig` が `ch32fun` モジュールを `@import` して HAL を呼ぶ
 2. **HAL / システム層** — `src/hal/*.zig` と `src/system/system.zig` が MMIO に対する型付きアクセスを提供
 3. **ランタイム / リンク層** — `src/runtime/startup.zig` が `_start` / ベクタテーブル / `.data` コピー / `.bss` ゼロクリアを担当し、`src/runtime/linker.ld` が FLASH / RAM の物理配置を決める
-4. **ビルド / 書き込み層** — `build.zig` が `riscv32` ターゲットでコンパイル、`addObjCopy` で `.bin` / `.hex` に変換し、`tools/flash.sh` から `minichlink` を呼んで FLASH に焼く
+4. **ビルド / 書き込み層** — `build.zig` が `riscv32` ターゲットでコンパイル、`addObjCopy` で `.bin` / `.hex` に変換し、Zig 製 WCH-LinkE ツールで FLASH に焼く
 
 このうち、本書で特に重点的に扱うのは **2〜4 段目** のしくみだ。「アプリの書き方」ではなく、「アプリを CH32V003 のフラッシュに乗るバイナリに変換するまでの道筋」のほうである。
 
@@ -94,7 +94,7 @@ flowchart TD
 |---|---|---|
 | I | 01〜03 | ターゲット指定とツールチェイン (RV32EC, Zig 0.16 のクロスコンパイル) |
 | II | 04〜06 | リンカスクリプト、起動コード、ベクタテーブル |
-| III | 07〜09 | `build.zig` の歩き方、objcopy、`minichlink` による書き込み |
+| III | 07〜09 | `build.zig` の歩き方、objcopy、WCH-LinkE による書き込み |
 | IV | 10〜12 | レジスタ抽象化と HAL の作り方 (GPIO/SysTick/I2C/SSD1306) |
 
 順に読めば「ビルドが通る理由 → リンクと配置が成立する理由 → ELF からフラッシュに焼ける理由 → HAL の作法」を一気通貫で辿れる構成にしている。すでに該当章の内容を把握している読者は、興味のある章から拾い読みしてもよい。
