@@ -10,7 +10,7 @@
 
 ## ハイライト
 
-- Zig 0.16 + LLVM の `Target.Query` で **RV32EC** をどう表現するか
+- Zig 0.17 + LLVM の `Target.Query` で **RV32EC** をどう表現するか
 - `linker.ld` の `> RAM AT > FLASH` トリック
 - `_start` (naked) → `_start_c` の起動シーケンス
 - `build.zig` のステップ DAG と `addObjCopy` の役割
@@ -40,7 +40,7 @@ WeasyPrint は内部で pango / cairo を使う。 macOS なら `brew install pa
 
 - 第 1 章: 本書の対象とゴール
 - 第 2 章: RV32EC というターゲットを正しく指定する
-- 第 3 章: Zig 0.16 のクロスコンパイル基盤
+- 第 3 章: Zig 0.17 のクロスコンパイル基盤
 
 ### 第 II 部 — リンクと起動
 
@@ -82,3 +82,7 @@ WeasyPrint は内部で pango / cairo を使う。 macOS なら `brew install pa
 - 付録 B: RV32 アセンブリ チートシート
 - 付録 C: CH32V003 レジスタ早見表
 - 付録 D: トラブルシューティング
+
+## Zig 0.17 への移行
+
+現在のソースとビルド手順は Zig 0.17.0 を対象とします。最適化モードは `debug` / `safe` / `fast` / `small`、バイナリ出力形式は `.binary`、配列の同値初期化は型を指定した `@splat` を使用します。既存の配布 PDF は Zig 0.16 時点の資料です。

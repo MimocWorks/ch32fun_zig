@@ -197,7 +197,7 @@ pub fn Slot(comptime T: type) type {
 
         /// 値を保存する (erase + program)。
         pub fn save(self: Self, value: T) Error!void {
-            var page: Page = [_]u8{0xFF} ** page_size;
+            var page: Page = @splat(0xFF);
             std.mem.writeInt(u16, page[0..2], SLOT_MAGIC, .little);
             std.mem.writeInt(u16, page[2..4], self.version, .little);
             // 4..8 は 0xFF のまま (将来用)

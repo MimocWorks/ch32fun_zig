@@ -9,15 +9,15 @@
 # Usage:
 #   sh tools/size-benchmark.sh [optimize-mode]
 #
-#   optimize-mode defaults to ReleaseSmall (the project default).
+#   optimize-mode defaults to small (the project default).
 set -eu
 
-OPTIMIZE="${1:-ReleaseSmall}"
+OPTIMIZE="${1:-small}"
 
 # Keep this list in sync with the `examples` array in build.zig.
-EXAMPLES="blinky gpio_input timer_irq oled persistent_counter uart_hello \
+EXAMPLES="blinky gpio_input timer_irq oled persistent_counter uart_hello swio_log \
 led_fade tone_song adc_meter exti_button compile_time_morse \
-state_machine_game packed_settings comptime_lookup spi_loopback uart_dma ir_text register_blinky"
+state_machine_game packed_settings comptime_lookup spi_loopback uart_dma hc_sr04 ir_text register_blinky"
 
 # Pick a size tool if one exists.
 SIZE_TOOL=""

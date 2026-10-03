@@ -14,7 +14,7 @@ English version: [README.md](README.md)
 
 ## 動作環境
 
-- Zig `0.16.0`（確認済み: `0.16.0`）
+- Zig `0.17.0`（確認済み: `0.17.0`）
 - WCH-LinkE（RISC-V モード）と実行時の libusb 1.0（書き込み時）
 - Linux/macOS のシェル環境（`sh`）
 - 任意（`disasm` / `mapfile` / `size` を使う場合のみ）:
@@ -26,8 +26,8 @@ English version: [README.md](README.md)
 ### macOS（Homebrew）
 
 ```sh
-# Zig 0.16
-brew install zig            # Homebrew がまだ 0.16 を提供していない場合は
+# Zig 0.17
+brew install zig            # Homebrew がまだ 0.17 を提供していない場合は
                             # 後述の tarball インストールを使ってください
 
 # LLVM ツール群（任意。disasm / mapfile / size を使う場合のみ）
@@ -56,29 +56,29 @@ sudo apt install -y llvm
 sudo pacman -S --needed libusb llvm
 ```
 
-### 公式 tarball から Zig 0.16 を入れる（Mac/Linux）
+### 公式 tarball から Zig 0.17 を入れる（Mac/Linux）
 
-パッケージマネージャに `0.16.0` がまだ無い場合は、
+パッケージマネージャに `0.17.0` がまだ無い場合は、
 [ziglang.org/download](https://ziglang.org/download/) から直接取得します。
 
 ```sh
 # macOS (Apple Silicon)
-curl -LO https://ziglang.org/download/0.16.0/zig-macos-aarch64-0.16.0.tar.xz
-tar -xJf zig-macos-aarch64-0.16.0.tar.xz
-sudo mv zig-macos-aarch64-0.16.0 /usr/local/zig-0.16.0
-sudo ln -sf /usr/local/zig-0.16.0/zig /usr/local/bin/zig
+curl -LO https://ziglang.org/download/0.17.0/zig-aarch64-macos-0.17.0.tar.xz
+tar -xJf zig-aarch64-macos-0.17.0.tar.xz
+sudo mv zig-aarch64-macos-0.17.0 /usr/local/zig-0.17.0
+sudo ln -sf /usr/local/zig-0.17.0/zig /usr/local/bin/zig
 
 # Linux (x86_64)
-curl -LO https://ziglang.org/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz
-tar -xJf zig-linux-x86_64-0.16.0.tar.xz
-sudo mv zig-linux-x86_64-0.16.0 /usr/local/zig-0.16.0
-sudo ln -sf /usr/local/zig-0.16.0/zig /usr/local/bin/zig
+curl -LO https://ziglang.org/download/0.17.0/zig-x86_64-linux-0.17.0.tar.xz
+tar -xJf zig-x86_64-linux-0.17.0.tar.xz
+sudo mv zig-x86_64-linux-0.17.0 /usr/local/zig-0.17.0
+sudo ln -sf /usr/local/zig-0.17.0/zig /usr/local/bin/zig
 ```
 
 確認:
 
 ```sh
-zig version   # 0.16.0 が表示されれば OK
+zig version   # 0.17.0 が表示されれば OK
 ```
 
 ## セットアップ
@@ -140,7 +140,7 @@ zig build -Dexample=blinky flash
 
 `fun.swio_log`はC版ch32funのDebugPrintfと互換性があり、追加のUARTピンなしで
 整形ログを出力できます。Debugビルドでは既定で有効です。16KBへ収めるため、
-実用時は次のroot宣言でログを明示的に有効化したReleaseSmallを推奨します。
+実用時は次のroot宣言でログを明示的に有効化したsmallを推奨します。
 小型フォーマッタは整数の`{d}`・`{x}`、文字列の`{s}`、型に応じた`{}`を
 サポートします。
 
@@ -157,12 +157,12 @@ fun.swio_log.err("failed code={d}", .{code});
 ビルドして書き込んだ後、ターミナルを起動します。
 
 ```sh
-zig build -Dexample=swio_log -Doptimize=ReleaseSmall
-zig build -Dexample=swio_log -Doptimize=ReleaseSmall flash
+zig build -Dexample=swio_log -Doptimize=small
+zig build -Dexample=swio_log -Doptimize=small flash
 minichlink -T # SWIO ターミナルを使う場合だけ別途インストール
 ```
 
-root宣言がない`ReleaseSmall`、`ReleaseFast`、`ReleaseSafe`では`swio_log.enabled`が
+root宣言がない`small`、`fast`、`safe`では`swio_log.enabled`が
 コンパイル時に`false`となります。各ログ関数はno-opになり、フォーマット処理、
 文字列、DMDATAアクセスは最終イメージから除去されます。明示宣言を`false`に
 すれば、Debugビルドからログを除去することもできます。

@@ -3,7 +3,7 @@ const ch32 = @import("ch32fun_zig");
 
 pub fn build(b: *std.Build) void {
     const target = ch32.ch32Target(b);
-    const optimize: std.builtin.OptimizeMode = .ReleaseSmall;
+    const optimize: std.lang.Optimize = .small;
     const ch32_dep = b.dependency("ch32fun_zig", .{});
     const mimoc_dep = b.dependency("mimoc_ui", .{ .target = target, .optimize = optimize });
     const hal = ch32.halModule(ch32_dep.builder);
@@ -37,6 +37,6 @@ pub fn build(b: *std.Build) void {
     exe.link_data_sections = true;
     exe.setLinkerScript(ch32_dep.path("src/runtime/linker.ld"));
     b.installArtifact(exe);
-    const bin = exe.addObjCopy(.{ .format = .bin, .basename = "mimoc_ui_ch32v003.bin" });
+    const bin = exe.addObjCopy(.{ .format = .binary, .basename = "mimoc_ui_ch32v003.bin" });
     b.getInstallStep().dependOn(&b.addInstallFileWithDir(bin.getOutput(), .{ .custom = "firmware" }, "mimoc_ui_ch32v003.bin").step);
 }

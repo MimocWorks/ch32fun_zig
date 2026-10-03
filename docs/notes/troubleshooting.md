@@ -14,9 +14,9 @@
 - LLVM ツールが入っていないため。`brew install llvm` や `sudo apt install llvm` で導入
 - もしくは GNU 系の `riscv-none-elf-*` をインストール (本プロジェクトの sh が両方フォールバックする)
 
-### `zig version` が `0.16.0` でない
+### `zig version` が `0.17.0` でない
 
-- README の手順に従って `0.16.0` を導入。Homebrew が `0.15.x` をインストールするケースは tarball で上書きする
+- README の手順に従って `0.17.0` を導入。Homebrew が `0.15.x` をインストールするケースは tarball で上書きする
 
 ## バイナリ生成系
 

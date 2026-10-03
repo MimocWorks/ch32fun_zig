@@ -5,7 +5,7 @@
 - ELF ファイルが「実行ファイル」ではなく **メタデータ付きコンテナ** であることを理解する
 - なぜ MCU への書き込みには「ELF そのまま」ではなく `.bin` や `.hex` が必要なのかを言える
 - Raw binary と Intel HEX のフォーマットの違いをざっくり把握する
-- `exe.addObjCopy({ .format = .bin })` が内部で何をしているのか想像できる
+- `exe.addObjCopy({ .format = .binary })` が内部で何をしているのか想像できる
 
 ---
 
@@ -32,7 +32,7 @@
 
 ```zig
 const bin = exe.addObjCopy(.{
-    .format = .bin,
+    .format = .binary,
     .basename = b.fmt("{s}.bin", .{selected.name}),
 });
 ```

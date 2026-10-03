@@ -15,7 +15,7 @@ else
 pub const ch32fun_swio_log_enabled = if (@hasDecl(app, "ch32fun_swio_log_enabled"))
     app.ch32fun_swio_log_enabled
 else
-    @import("builtin").mode == .Debug;
+    @import("builtin").mode == .debug;
 
 const startup = @import("runtime/startup_exti.zig");
 comptime {

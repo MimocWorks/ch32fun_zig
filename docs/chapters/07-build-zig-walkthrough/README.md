@@ -106,7 +106,7 @@ const exe = b.addExecutable(.{
 ```
 
 - **`root_module`** は「ルートソース」「ターゲット」「最適化レベル」「libc を引かない」を持つ Zig モジュールの単位。
-- それを `addExecutable` の `.root_module` に渡す。Zig 0.16 のビルド API は「モジュールを作って、それから実行ファイルを作る」というワンクッションを挟む形になっている。
+- それを `addExecutable` の `.root_module` に渡す。Zig 0.17 のビルド API は「モジュールを作って、それから実行ファイルを作る」というワンクッションを挟む形になっている。
 - `linkage = .static` で動的リンクを禁ずる。
 
 ### `ch32fun` モジュールの import
@@ -151,7 +151,7 @@ b.getInstallStep().dependOn(&elf_install.step);
 
 ```zig
 const bin = exe.addObjCopy(.{
-    .format = .bin,
+    .format = .binary,
     .basename = b.fmt("{s}.bin", .{selected.name}),
 });
 const bin_install = b.addInstallFileWithDir(
@@ -162,7 +162,7 @@ const bin_install = b.addInstallFileWithDir(
 b.getInstallStep().dependOn(&bin_install.step);
 ```
 
-- **`exe.addObjCopy({ .format = .bin })`** は Zig が内部で `objcopy` 相当の処理を行うステップを作る。 外部の `llvm-objcopy` を呼んでいるわけではなく、 Zig が ELF を読んで Intel HEX や raw binary に変換する処理を持っている。
+- **`exe.addObjCopy({ .format = .binary })`** は Zig が内部で `objcopy` 相当の処理を行うステップを作る。 外部の `llvm-objcopy` を呼んでいるわけではなく、 Zig が ELF を読んで Intel HEX や raw binary に変換する処理を持っている。
 - `.bin` (Raw) は WCH-LinkE ツールへの書き込みで使う。
 - `.hex` (Intel HEX) は他のツール (ISP プログラマ等) と互換させたいとき用。
 

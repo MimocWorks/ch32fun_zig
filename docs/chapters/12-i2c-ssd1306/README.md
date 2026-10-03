@@ -173,7 +173,7 @@ while (true) {
 `writePage()`はSSD1306/SSD1309の列・page範囲、SH1106の2列offset、32バイト単位のI2C転送を
 HAL内へ隠蔽する。`.full`では同じpicture-loop APIが描画を1回だけ実行して従来の`refresh()`を
 行うため、アプリはbuffer modeによる分岐を持たなくてよい。未選択bufferの配列はcomptimeで
-生成されず、ReleaseSmallの静的RAMへ含まれない。
+生成されず、smallの静的RAMへ含まれない。
 
 ### ピクセル描画
 

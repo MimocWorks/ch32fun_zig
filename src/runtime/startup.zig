@@ -169,7 +169,7 @@ export fn _exti7_0_irq_body() callconv(.c) void {
 }
 
 fn makeVectorTable() [39]?*const anyopaque {
-    var table = [_]?*const anyopaque{null} ** 39;
+    var table: [39]?*const anyopaque = @splat(null);
     table[2] = &_default_irq_entry; // NMI
     table[3] = &_default_irq_entry; // Exception
     table[12] = &_systick_irq_entry; // SysTick

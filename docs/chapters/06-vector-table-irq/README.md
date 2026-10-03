@@ -32,7 +32,7 @@ CH32V003 (QingKe RV32EC) では PFIC (Programmable Fast Interrupt Controller) �
 
 ```zig
 fn makeVectorTable() [39]?*const anyopaque {
-    var table = [_]?*const anyopaque{null} ** 39;
+    var table: [39]?*const anyopaque = @splat(null);
     table[2] = &_default_irq_entry;   // NMI
     table[3] = &_default_irq_entry;   // Exception
     table[12] = &_systick_irq_entry;  // SysTick
@@ -52,7 +52,7 @@ pub export const vector_table linksection(".vector_table") = makeVectorTable();
 ### ポイント
 
 - **`?*const anyopaque`** — 「不透明な関数ポインタ、または null」。 ベクタは関数ポインタとしてだけ意味があるので、 型は緩めにして良い。
-- **`comptime` 配列構築** — Zig 0.16 では、 グローバル `const` の初期化式は `comptime` で評価される。 つまり `makeVectorTable()` の呼び出しはランタイムには走らず、 **コンパイル時にテーブルが組み上がる**。 結果として ELF に静的データとして焼き込まれる。
+- **`comptime` 配列構築** — Zig 0.17 では、 グローバル `const` の初期化式は `comptime` で評価される。 つまり `makeVectorTable()` の呼び出しはランタイムには走らず、 **コンパイル時にテーブルが組み上がる**。 結果として ELF に静的データとして焼き込まれる。
 - **`linksection(".vector_table")`** — リンカスクリプトの `.vector_table` セクションに置く指示。 第 4 章で `KEEP(*(.vector_table))` していたのと対応する。
 - **長さ 39** — 「16 (システム例外) + 23 (CH32V003 が使う最大の周辺 IRQ 番号 + α)」というつもりの数。 余分なエントリも `&_default_irq_entry` で埋めて、 万一不意の割り込みが来てもベクタアドレスとして null を踏まないようにしている。
 

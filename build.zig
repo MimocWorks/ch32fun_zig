@@ -52,7 +52,7 @@ fn resolveExample(name: []const u8) ?Example {
 //   const fw = ch32.addFirmware(b, dep, .{
 //       .name = "my_app",
 //       .root_source_file = b.path("src/main.zig"),
-//       .optimize = .ReleaseSmall,
+//       .optimize = .small,
 //   });
 //   b.installArtifact(fw);
 //
@@ -99,7 +99,7 @@ pub const Runtime = enum {
 pub const FirmwareOptions = struct {
     name: []const u8,
     root_source_file: std.Build.LazyPath,
-    optimize: std.builtin.OptimizeMode = .ReleaseSmall,
+    optimize: std.lang.Optimize = .small,
     /// Override the default CH32V003 linker script.
     linker_script: ?std.Build.LazyPath = null,
     /// Let ch32fun_zig own reset initialization and the interrupt vectors.
@@ -163,7 +163,7 @@ pub fn addFirmware(
 }
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Optimization mode") orelse .ReleaseSmall;
+    const optimize = b.option(std.lang.Optimize, "optimize", "Optimization mode") orelse .small;
     const example_name = b.option([]const u8, "example", "Example to build") orelse "blinky";
     const selected = resolveExample(example_name) orelse {
         std.debug.print("Unknown example '{s}'. Available: blinky, gpio_input, timer_irq, oled, persistent_counter, uart_hello, swio_log, led_fade, tone_song, adc_meter, exti_button, compile_time_morse, state_machine_game, packed_settings, comptime_lookup, spi_loopback, uart_dma, hc_sr04, ir_text, register_blinky\n", .{example_name});
@@ -190,7 +190,7 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&elf_install.step);
 
     const bin = exe.addObjCopy(.{
-        .format = .bin,
+        .format = .binary,
         .basename = b.fmt("{s}.bin", .{selected.name}),
     });
     const bin_install = b.addInstallFileWithDir(bin.getOutput(), .{ .custom = "firmware" }, b.fmt("{s}.bin", .{selected.name}));
@@ -230,7 +230,7 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .root_source_file = b.path("tools/wchlinke.zig"),
             .target = b.graph.host,
-            .optimize = .ReleaseSafe,
+            .optimize = .safe,
         }),
     });
     b.installArtifact(wchlinke);

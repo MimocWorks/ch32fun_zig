@@ -14,7 +14,7 @@ Japanese version: [README_ja.md](README_ja.md)
 
 ## Requirements
 
-- Zig `0.16.0` (verified with `0.16.0`)
+- Zig `0.17.0` (verified with `0.17.0`)
 - WCH-LinkE in RISC-V mode and libusb 1.0 at flash time
 - Linux/macOS shell environment (`sh`)
 - Optional (for `disasm` / `mapfile` / `size` steps):
@@ -26,8 +26,8 @@ Japanese version: [README_ja.md](README_ja.md)
 ### macOS (Homebrew)
 
 ```sh
-# Zig 0.16
-brew install zig            # if Homebrew has not yet promoted 0.16, use the
+# Zig 0.17
+brew install zig            # if Homebrew has not yet promoted 0.17, use the
                             # tarball install below instead
 
 # LLVM tools (optional, for disasm / mapfile / size)
@@ -56,29 +56,29 @@ sudo apt install -y llvm
 sudo pacman -S --needed libusb llvm
 ```
 
-### Installing Zig 0.16 from the official tarball (Mac/Linux)
+### Installing Zig 0.17 from the official tarball (Mac/Linux)
 
-If your package manager does not yet provide `0.16.0`, download it directly
+If your package manager does not yet provide `0.17.0`, download it directly
 from [ziglang.org/download](https://ziglang.org/download/):
 
 ```sh
 # macOS (Apple Silicon)
-curl -LO https://ziglang.org/download/0.16.0/zig-macos-aarch64-0.16.0.tar.xz
-tar -xJf zig-macos-aarch64-0.16.0.tar.xz
-sudo mv zig-macos-aarch64-0.16.0 /usr/local/zig-0.16.0
-sudo ln -sf /usr/local/zig-0.16.0/zig /usr/local/bin/zig
+curl -LO https://ziglang.org/download/0.17.0/zig-aarch64-macos-0.17.0.tar.xz
+tar -xJf zig-aarch64-macos-0.17.0.tar.xz
+sudo mv zig-aarch64-macos-0.17.0 /usr/local/zig-0.17.0
+sudo ln -sf /usr/local/zig-0.17.0/zig /usr/local/bin/zig
 
 # Linux (x86_64)
-curl -LO https://ziglang.org/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz
-tar -xJf zig-linux-x86_64-0.16.0.tar.xz
-sudo mv zig-linux-x86_64-0.16.0 /usr/local/zig-0.16.0
-sudo ln -sf /usr/local/zig-0.16.0/zig /usr/local/bin/zig
+curl -LO https://ziglang.org/download/0.17.0/zig-x86_64-linux-0.17.0.tar.xz
+tar -xJf zig-x86_64-linux-0.17.0.tar.xz
+sudo mv zig-x86_64-linux-0.17.0 /usr/local/zig-0.17.0
+sudo ln -sf /usr/local/zig-0.17.0/zig /usr/local/bin/zig
 ```
 
 Verify:
 
 ```sh
-zig version   # should print 0.16.0
+zig version   # should print 0.17.0
 ```
 
 ## Setup
@@ -161,13 +161,13 @@ fun.swio_log.err("failed code={d}", .{code});
 Build and flash, then start the terminal:
 
 ```sh
-zig build -Dexample=swio_log -Doptimize=ReleaseSmall
-zig build -Dexample=swio_log -Doptimize=ReleaseSmall flash
+zig build -Dexample=swio_log -Doptimize=small
+zig build -Dexample=swio_log -Doptimize=small flash
 minichlink -T # only if you separately install a SWIO terminal
 ```
 
-Without a root override, `swio_log.enabled` is compile-time false in `ReleaseSmall`,
-`ReleaseFast`, and `ReleaseSafe`. Every logging function becomes a no-op, and
+Without a root override, `swio_log.enabled` is compile-time false in `small`,
+`fast`, and `safe`. Every logging function becomes a no-op, and
 formatting code, strings, and DMDATA accesses are removed from the final image.
 Set the root declaration to false to remove logs from a Debug build as well.
 
@@ -326,7 +326,7 @@ pub fn build(b: *std.Build) void {
     const fw = ch32.addFirmware(b, dep, .{
         .name = "my_app",
         .root_source_file = b.path("src/main.zig"),
-        .optimize = .ReleaseSmall,
+        .optimize = .small,
     });
     b.installArtifact(fw);
 }

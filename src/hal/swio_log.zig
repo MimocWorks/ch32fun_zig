@@ -14,7 +14,7 @@ const root = @import("root");
 pub const enabled = if (@hasDecl(root, "ch32fun_swio_log_enabled"))
     root.ch32fun_swio_log_enabled
 else
-    builtin.mode == .Debug;
+    builtin.mode == .debug;
 
 pub const Level = enum { info, warn, err };
 
@@ -22,7 +22,7 @@ const dmdata0_address: usize = 0xe000_00f4;
 const dmdata1_address: usize = 0xe000_00f8;
 const busy_bit: u32 = 0x80;
 const timed_out_mask: u32 = 0xc0;
-// ReleaseSmall can execute a short polling loop before minichlink has finished
+// small can execute a short polling loop before minichlink has finished
 // rebooting the target and entered terminal polling. Match ch32fun's optional
 // long-wait configuration so early boot messages are not lost.
 const timeout_iterations: u32 = 0x8000_0000;

@@ -103,7 +103,7 @@ pub const page_buffer_size: usize = width_us;
 /// A hardware-page-sized drawing buffer. Its 128 data bytes represent one
 /// 128x8 band; pixels outside `page` are clipped before array access.
 pub const PageBuffer = struct {
-    data: [page_buffer_size]u8 = [_]u8{0} ** page_buffer_size,
+    data: [page_buffer_size]u8 = @splat(0),
     page: u3 = 0,
 
     pub fn clear(self: *PageBuffer) void {
@@ -131,7 +131,7 @@ pub const PageBuffer = struct {
 const active_buffer_size = if (buffer_mode == .page) page_buffer_size else width_us * height_us / 8;
 
 /// Active drawing storage: 128 bytes in `.page`; `.full` matches panel size.
-pub var buffer: [active_buffer_size]u8 = [_]u8{0} ** active_buffer_size;
+pub var buffer: [active_buffer_size]u8 = @splat(0);
 var current_page: u3 = 0;
 var current_orientation: Orientation = .landscape;
 var current_address: Address = .primary;

@@ -60,7 +60,7 @@ inline for (examples) |example| {
 
 // ベクタテーブルは comptime に組み上がって ELF に焼き込まれる
 fn makeVectorTable() [39]?*const anyopaque {
-    var table = [_]?*const anyopaque{null} ** 39;
+    var table: [39]?*const anyopaque = @splat(null);
     table[2] = &_default_irq_entry;
     // ...
     return table;
@@ -112,7 +112,7 @@ const builtin = @import("builtin");
 if (builtin.os.tag == .freestanding) {
     // ターゲット依存の分岐
 }
-if (builtin.mode == .Debug) {
+if (builtin.mode == .debug) {
     // Debug ビルド時だけのコード
 }
 const endian = builtin.cpu.arch.endian();
@@ -175,10 +175,10 @@ freestanding ターゲットでも、 「panic 時のフォーマッタとスタ
 
 | 構成 | ELF サイズ (概算) |
 |---|---|
-| `-O ReleaseSmall` + 自前 panic ハンドラ | 1〜2 KB |
-| `-O Debug` + デフォルト panic | **〜2 MB** ELF (=リンク後の `.text` が無視できないサイズに膨らむ) |
+| `-O small` + 自前 panic ハンドラ | 1〜2 KB |
+| `-O debug` + デフォルト panic | **〜2 MB** ELF (=リンク後の `.text` が無視できないサイズに膨らむ) |
 
-本プロジェクトでも、 デフォルト最適化は `ReleaseSmall` にしてある (build.zig の `optimize` のデフォルト)。 Debug でビルドするときは:
+本プロジェクトでも、 デフォルト最適化は `small` にしてある (build.zig の `optimize` のデフォルト)。 Debug でビルドするときは:
 
 - **必ず自前の panic ハンドラ** を root モジュールに置く
   ```zig
@@ -189,7 +189,7 @@ freestanding ターゲットでも、 「panic 時のフォーマッタとスタ
   ```
 - それでも Debug ビルドの方が大きいので、 16K FLASH に収まらないことがある
 
-「ReleaseSmall でビルド、 デバッグは観測 LED と SWD でやる」 が現実的な落とし所。
+「small でビルド、 デバッグは観測 LED と SWD でやる」 が現実的な落とし所。
 
 ---
 
@@ -325,6 +325,6 @@ freestanding でも問題なく動き、 役立つもの一覧:
 - `std.mem` / `std.math` / `std.fmt.bufPrint` / `std.meta` / `std.heap.FixedBufferAllocator` / `std.ArrayList` あたりは「**OS が無くても動く部品**」として安心して使える
 - `std.debug.print` / `std.fs` / `std.Thread` / `GeneralPurposeAllocator` などは **コンパイル時点で弾かれる**。 これは仕様であって不具合ではない
 - 浮動小数点と 64-bit は「ビルドは通るが MCU には重い」 という典型例。 必要性を見極めて使う
-- Debug ビルドは panic 関連で `.text` が大きく膨らむ。 デフォルトの `ReleaseSmall` で書き、 デバッグは LED と SWD で観測するのが現実的
+- Debug ビルドは panic 関連で `.text` が大きく膨らむ。 デフォルトの `small` で書き、 デバッグは LED と SWD で観測するのが現実的
 
 これで、 本プロジェクト上で **「これを書いたら通る/通らない/動くが太る」** が見通せる状態になる。 各章で見てきた MCU 寄りの薄い HAL と、 ここで挙げた「freestanding で使える Zig の道具立て」を組み合わせれば、 CH32V003 上で達成できる事の幅はずっと広がる。

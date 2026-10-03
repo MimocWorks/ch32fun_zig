@@ -33,7 +33,7 @@ pub const Config = struct {
     handler: Handler,
 };
 
-var handlers: [8]?Handler = .{null} ** 8;
+var handlers: [8]?Handler = @splat(null);
 
 /// 指定ラインに対する設定を行う (有効化はまだしない)。
 pub fn config(cfg: Config) void {
